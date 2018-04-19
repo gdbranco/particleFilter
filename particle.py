@@ -5,8 +5,16 @@ from config import *
 
 Vector2D = pygame.math.Vector2
 
+def add_noise(level, *coords):
+    return [x + random.uniform(-level, level) for x in coords]
+
+def add_some_noise(*coords):
+    return add_noise(0.1, *coords)
+
 class Particle(object):
-    def __init__(self, pos, color = None, radius = 5, weight = 1):
+    def __init__(self, pos, color = None, radius = 5, weight = 1, noise = False):
+        if noise:
+            pos[0], pos[1] = add_some_noise(pos[0],pos[1])
         self.pos = Vector2D(pos)
         self.vel = Vector2D(0,0)
         self.direction = random.uniform(0, 360)
@@ -20,6 +28,9 @@ class Particle(object):
     def __str__(self):
         return "({}, {}) - {}".format(self.pos[0],self.pos[1],self.weight)
 
+    def read_sensor(self, room):
+        return room.d2NearestBeacon(self.pos)
+
     def w2color(self, weight):
         return (int(weight*255), 0, int((1-weight)*255))
 
@@ -27,7 +38,6 @@ class Particle(object):
         return pygame.Rect((self.pos[0]*room.BLOCK_WIDTH)-self.radius, (self.pos[1]*room.BLOCK_HEIGHT)-self.radius, self.radius*2, self.radius*2)
 
     def draw(self, screen, room):
-        #pygame.draw.rect(screen, self.color, self.getRect(room))
         pygame.draw.circle(screen, self.color, (int(self.pos[0]*room.BLOCK_WIDTH), int(self.pos[1]*room.BLOCK_HEIGHT)), self.radius, 0)
 
     def bounce_bounds(self, pos, room):

@@ -10,6 +10,12 @@ class Room(object):
         self.pattern = pattern
         self.BLOCK_WIDTH = round(SCREEN_WIDTH / self.size[1])
         self.BLOCK_HEIGHT = round(SCREEN_HEIGHT / self.size[0])
+        self.beacons = []
+        for i in range(self.size[1]):
+            for j in range(self.size[0]):
+                if(self.pattern[j][i]==2):
+                    self.beacons.append((i,j))
+
     def __str__(self):
         s = ""
         s += str(self.size[0]) + "x" + str(self.size[1])
@@ -21,6 +27,15 @@ class Room(object):
 
     def getRect(self, pos):
         return pygame.Rect(int(pos[0])*self.BLOCK_WIDTH,int(pos[1])*self.BLOCK_HEIGHT, self.BLOCK_WIDTH, self.BLOCK_HEIGHT)
+
+
+    def d2NearestBeacon(self, pos):
+        distance = 999
+        for beacon in self.beacons:
+            d = math.hypot(beacon[0]-pos[0], beacon[1]-pos[1])
+            if(d < distance):
+                distance = d
+            return distance
 
     def randomFreePos(self):
         while True:
