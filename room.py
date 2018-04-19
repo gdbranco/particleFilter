@@ -1,4 +1,6 @@
 import random
+import pygame
+from config import *
 class Room(object):
     # 0 Empty
     # 1 Occupied
@@ -6,6 +8,8 @@ class Room(object):
     def __init__(self, size, pattern):
         self.size = size
         self.pattern = pattern
+        self.BLOCK_WIDTH = math.ceil(SCREEN_WIDTH / self.size[1])
+        self.BLOCK_HEIGHT = math.ceil(SCREEN_HEIGHT / self.size[0])
     def __str__(self):
         s = ""
         s += str(self.size[0]) + "x" + str(self.size[1])
@@ -14,6 +18,10 @@ class Room(object):
             for j in range(self.size[1]):
                 s += str(self.pattern[i][j]) + " "
         return s
+
+    def getRect(self, pos):
+        return pygame.Rect(int(pos[0]*self.BLOCK_WIDTH),int(pos[1]*self.BLOCK_HEIGHT), self.BLOCK_WIDTH, self.BLOCK_HEIGHT)
+
     def randomFreePos(self):
         while True:
             pos = self.randomPos()
@@ -28,6 +36,9 @@ class Room(object):
             return False
         int_pos = (int(pos[0]),int(pos[1]))
         return self.pattern[int_pos[1]][int_pos[0]] == 0
+    
+    def getBlock(self, pos):
+        return (int(pos[1]), int(pos[0]))
 
 
 def main():
