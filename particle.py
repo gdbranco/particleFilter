@@ -13,37 +13,62 @@ class Particle(object):
         self.acc = Vector2D(math.cos(math.radians(self.direction)), math.sin(math.radians(self.direction)))
         self.weight = random.uniform(0, 1)
         self.color = color
+        if(color is None):
+            self.color = self.w2color(self.weight)
         self.radius = radius
 
     def __str__(self):
         return "({}, {}) - {}".format(self.pos[0],self.pos[1],self.weight)
 
-    def getRect(self):
-        return pygame.Rect(self.pos[0]-self.radius, self.pos[1]-self.radius, self.radius*2, self.radius*2)
+    def w2color(self, weight):
+        return (int(weight*255), 0, int((1-weight)*255))
 
-    def reflect(self, new_pos, room):
+    def getRect(self, room):
+        return pygame.Rect((self.pos[0]*room.BLOCK_WIDTH)-self.radius, (self.pos[1]*room.BLOCK_HEIGHT)-self.radius, self.radius*2, self.radius*2)
+
+    def draw(self, screen, room):
+        #pygame.draw.rect(screen, self.color, self.getRect(room))
+        pygame.draw.circle(screen, self.color, (int(self.pos[0]*room.BLOCK_WIDTH), int(self.pos[1]*room.BLOCK_HEIGHT)), self.radius, 0)
+
+    def bounce_bounds(self, pos, room):
         normal = self.acc
-        #REFLECT OF BOUNDS OF SCREEN
-        if(new_pos[0]-(self.radius/room.BLOCK_WIDTH) <= 0 or new_pos[0]+(self.radius/room.BLOCK_WIDTH) >= room.size[1]):
-            normal[0] = -normal[0]
-        elif(new_pos[1]-(self.radius/room.BLOCK_HEIGHT) <= 0 or new_pos[1]+(self.radius/room.BLOCK_HEIGHT) >= room.size[0]):
-            normal[1] = -normal[1]
-        #REFLECT OF WALLS
-        elif(not room.freePos(new_pos)):
-            rect = room.getRect(new_pos)
-            if(rect.colliderect(self.getRect())):
-                print("reflect")
-        # elif(not room.freePos(new_pos)):
-        #     print(int(new_pos[0]*room.BLOCK_WIDTH), int(new_pos[1]*room.BLOCK_HEIGHT))
-        #     print(rect.left, rect.right)
-        #     print(rect.top, rect.bottom)
-        #     print("reflect")
-        #     if((int((new_pos[0]*room.BLOCK_WIDTH))+self.radius) >= rect.left or (int((new_pos[0]*room.BLOCK_WIDTH))-self.radius) <= rect.right):
-        #         normal[0] = -normal[0]
-        #     else:
-        #         normal[1] = -normal[1]
+        if(int(pos[0]*room.BLOCK_WIDTH)-self.radius <= 0 or int(pos[0]*room.BLOCK_WIDTH)+self.radius >= room.size[1]*room.BLOCK_WIDTH):
+            normal[0] *= -1
+        elif(int(pos[1]*room.BLOCK_HEIGHT)-self.radius <= 0 or int(pos[1]*room.BLOCK_HEIGHT)+self.radius >= room.size[0]*room.BLOCK_HEIGHT):
+            normal[1] *= -1
+        return normal
+
+    def bounce_walls(self, pos, room):
+        #base on https://gamedev.stackexchange.com/questions/61705/pygame-colliderect-but-how-do-they-collide
+        normal = self.acc
+        rect = room.getRect(pos)
+        me = self.getRect(room)
+        ar = math.atan2(me.centery - me.top, me.right - me.centerx) # half of the angle of the right side
+        # construct the corner angles into an array to search for index such that the index indicates direction
+        # this is normalized into [0, 2π] to make searches easier (no negative numbers and stuff) 
+        dirint = [ 2*ar, math.pi, math.pi+2*ar, 2*math.pi]
+        # calculate angle towars the center of the other rectangle, + ar for normalization into
+        ad = math.atan2(me.centery - rect.centery, rect.centerx - me.centerx) + ar
+        # again normalization, sincen atan2 ouputs values in the range of [-π,π]
+        if ad < 0:
+            ad = 2*math.pi + ad
+        # search for the quadrant we are in and return it
+        for i in range(len(dirint)):
+            if ad < dirint[i]:
+                dir = i
+                break
+        if(dir == 0 or dir == 2):
+            normal[0]*=-1
         else:
-            print("nothing")
+            normal[1]*=-1
+        return normal
+
+    def reflect(self, pos, room):
+        #REFLECT OF BOUNDS OF SCREEN
+        normal = self.bounce_bounds(pos, room)
+        #REFLECT OF WALLS
+        if(not room.freePos(pos)):
+            normal = self.bounce_walls(pos, room)
         return normal
 
     def update(self, dt, room):
@@ -51,6 +76,7 @@ class Particle(object):
         old_direction = self.direction
         #self.direction = math.degrees(math.atan(self.acc[1]/self.acc[0]))
         #self.direction = self.direction + 180 if self.direction < 0 else self.direction
+        self.acc = self.reflect(old_pos, room)
         if(self.acc.length() > MAX_ACC):
             self.acc.scale_to_length(MAX_ACC)
         self.vel += self.acc
@@ -58,13 +84,9 @@ class Particle(object):
         if(self.vel.length() > MAX_SPEED):
             self.vel.scale_to_length(MAX_SPEED)
         new_pos = old_pos + self.vel
-        self.acc = self.reflect(new_pos, room)
         self.pos = new_pos
 
-    def move(self, speed, checker=None):
-        direction = self.direction
-        r = math.radians(direction)
-        dx = math.sin(r) * speed
-        dy = math.cos(r) * speed
-        newPos = (dx,dy)
-        self.pos += newPos
+    def follow(self, dt, new_acc):
+        self.vel += new_acc
+        self.vel *= dt
+        self.pos += self.vel

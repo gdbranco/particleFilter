@@ -1,6 +1,7 @@
 import math
 
-COLOR_BG = (45, 45, 45)
+COLOR_BG = (0, 0, 0)
+COLOR_WALL = (45, 45, 45)
 COLOR_EMPTY = (255, 255, 255)
 COLOR_OCCUPIED = (0, 0, 0)
 COLOR_BEACON = (0, 0, 255)

@@ -23,7 +23,7 @@ class Draw:
                                   (0,0,0,0,0,0,0,0,0,0,0,0,0,1),
                                   (0,0,1,1,1,1,1,1,1,1,1,1,1,1)))
         self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
-        #self.particles = [Particle(self.room.randomFreePos()) for i in range(PARTICLE_COUNT)]
+        self.particles = [Particle(self.room.randomFreePos()) for i in range(PARTICLE_COUNT)]
     
     def draw_grid(self):
         for x in range(0, SCREEN_WIDTH, self.room.BLOCK_WIDTH):
@@ -36,14 +36,13 @@ class Draw:
             for j in range(self.room.size[0]):
                 if self.room.pattern[j][i] == 0:
                     pygame.draw.rect(self.screen, COLOR_EMPTY, pygame.Rect(i*self.room.BLOCK_WIDTH, j*self.room.BLOCK_HEIGHT, self.room.BLOCK_WIDTH, self.room.BLOCK_HEIGHT))
-
-    def w2color(self, weight):
-        return (int(weight*255), 0, int((1-weight)*255))
+                else:
+                    pygame.draw.rect(self.screen, COLOR_WALL, pygame.Rect(i*self.room.BLOCK_WIDTH, j*self.room.BLOCK_HEIGHT, self.room.BLOCK_WIDTH, self.room.BLOCK_HEIGHT))
 
     def draw_particles(self):
-        pygame.draw.circle(self.screen, self.person.color, (int(self.person.pos[0]*self.room.BLOCK_WIDTH), int(self.person.pos[1]*self.room.BLOCK_HEIGHT)), self.person.radius, 10)
-        #for particle in self.particles:
-        #    pygame.draw.circle(self.screen, self.w2color(particle.weight), (int(particle.pos[0]*self.BLOCK_WIDTH), int(particle.pos[1]*self.BLOCK_HEIGHT)), particle.radius, 5)
+        self.person.draw(self.screen, self.room)
+        for particle in self.particles:
+            particle.draw(self.screen, self.room)
 
     def draw(self):
         self.screen.fill(COLOR_BG)
@@ -53,8 +52,8 @@ class Draw:
     
     def update(self, dt):
         self.person.update(dt, self.room)
-        #for particle in self.particles:
-        #    particle.update(dt)
+        for particle in self.particles:
+            particle.follow(dt,self.person.acc)
 
     def play(self):
         while True:

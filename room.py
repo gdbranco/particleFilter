@@ -8,8 +8,8 @@ class Room(object):
     def __init__(self, size, pattern):
         self.size = size
         self.pattern = pattern
-        self.BLOCK_WIDTH = math.ceil(SCREEN_WIDTH / self.size[1])
-        self.BLOCK_HEIGHT = math.ceil(SCREEN_HEIGHT / self.size[0])
+        self.BLOCK_WIDTH = round(SCREEN_WIDTH / self.size[1])
+        self.BLOCK_HEIGHT = round(SCREEN_HEIGHT / self.size[0])
     def __str__(self):
         s = ""
         s += str(self.size[0]) + "x" + str(self.size[1])
@@ -20,7 +20,7 @@ class Room(object):
         return s
 
     def getRect(self, pos):
-        return pygame.Rect(int(pos[0]*self.BLOCK_WIDTH),int(pos[1]*self.BLOCK_HEIGHT), self.BLOCK_WIDTH, self.BLOCK_HEIGHT)
+        return pygame.Rect(int(pos[0])*self.BLOCK_WIDTH,int(pos[1])*self.BLOCK_HEIGHT, self.BLOCK_WIDTH, self.BLOCK_HEIGHT)
 
     def randomFreePos(self):
         while True:
