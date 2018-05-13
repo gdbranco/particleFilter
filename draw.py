@@ -4,7 +4,7 @@ from room import Room
 from particle import Particle
 import random
 import bisect
-from config import *
+import config
 
 sigma2 = 0.9 ** 2
 def w_gauss(a, b):
@@ -54,44 +54,45 @@ def compute_mean_point(particles):
         if math.hypot(p.x-m_x,p.y-m_y) < 1:
             m_count += 1
 
-    return m_x, m_y, m_count > PARTICLE_COUNT * 0.95
+    return m_x, m_y, m_count > config.PARTICLE_COUNT * 0.95
 
 class Draw:
     def __init__(self):
         pygame.display.set_caption("Particle Filter Demo")
-        self.window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.window = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
         self.screen = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
         self.playing = 1
-        self.room = Room((11,14),((0,0,0,0,1,1,1,2,1,1,1,1,0,0),
-                                  (0,1,1,0,1,0,0,0,0,0,0,0,0,0),
-                                  (0,1,1,0,1,0,0,0,0,0,0,0,1,1),
-                                  (0,1,1,0,1,0,0,0,0,0,0,0,0,1),
-                                  (0,1,1,0,1,0,0,0,0,0,0,0,0,1),
-                                  (0,0,0,0,1,0,0,0,0,0,0,0,0,1),
-                                  (1,1,1,0,1,1,1,1,1,1,0,0,0,1),
-                                  (0,0,1,0,1,1,1,1,1,2,0,0,0,1),
-                                  (0,0,1,0,0,0,0,0,0,0,0,0,0,1),
-                                  (0,0,0,0,0,0,0,0,0,0,0,0,0,1),
-                                  (0,0,1,2,1,1,1,1,1,1,1,1,1,1)))
+        self.room = Room((12,16),((1,0,0,0,0,1,1,1,2,1,1,1,1,0,0,1),
+                                  (1,0,1,1,0,1,0,0,0,0,0,0,0,0,0,1),
+                                  (1,0,1,1,0,1,0,0,0,0,0,0,0,1,1,1),
+                                  (1,0,1,1,0,1,0,0,0,0,0,0,0,0,1,1),
+                                  (1,0,1,1,0,1,0,0,0,0,0,0,0,0,1,1),
+                                  (1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,1),
+                                  (1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1),
+                                  (1,0,0,1,0,1,1,1,1,1,2,0,0,0,1,1),
+                                  (1,0,0,1,0,0,0,0,0,0,0,0,0,0,1,1),
+                                  (1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1),
+                                  (1,0,0,1,2,1,1,1,1,1,1,1,1,1,1,1),
+                                  (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)))
         self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
-        self.particles = [Particle(self.room.randomFreePos()) for i in range(PARTICLE_COUNT)]
+        self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
     
     def draw_grid(self):
-        for x in range(0, SCREEN_WIDTH, self.room.BLOCK_WIDTH):
-            pygame.draw.line(self.screen, TEXT_COLOR, (x,0), (x, SCREEN_HEIGHT))
-        for y in range(0, SCREEN_HEIGHT, self.room.BLOCK_HEIGHT):
-            pygame.draw.line(self.screen, TEXT_COLOR, (0, y), (SCREEN_WIDTH, y))
+        for x in range(0, config.SCREEN_WIDTH, config.BLOCK_WIDTH):
+            pygame.draw.line(self.screen, config.TEXT_COLOR, (x,0), (x, config.SCREEN_HEIGHT))
+        for y in range(0, config.SCREEN_HEIGHT, config.BLOCK_HEIGHT):
+            pygame.draw.line(self.screen, config.TEXT_COLOR, (0, y), (config.SCREEN_WIDTH, y))
 
     def draw_room(self):
         for i in range(self.room.size[1]):
             for j in range(self.room.size[0]):
                 if self.room.pattern[j][i] == 0:
-                    pygame.draw.rect(self.screen, COLOR_EMPTY, pygame.Rect(i*self.room.BLOCK_WIDTH, j*self.room.BLOCK_HEIGHT, self.room.BLOCK_WIDTH, self.room.BLOCK_HEIGHT))
-                elif(self.room.pattern[j][i]==2):
-                    pygame.draw.rect(self.screen, COLOR_BEACON, pygame.Rect(i*self.room.BLOCK_WIDTH, j*self.room.BLOCK_HEIGHT, self.room.BLOCK_WIDTH, self.room.BLOCK_HEIGHT))
+                    pygame.draw.rect(self.screen, config.COLOR_EMPTY, pygame.Rect(i*config.BLOCK_WIDTH, j*config.BLOCK_HEIGHT, config.BLOCK_WIDTH, config.BLOCK_HEIGHT))
+                elif(self.room.pattern[j][i] == 2):
+                    pygame.draw.rect(self.screen, config.COLOR_BEACON, pygame.Rect(i*config.BLOCK_WIDTH, j*config.BLOCK_HEIGHT, config.BLOCK_WIDTH, config.BLOCK_HEIGHT))
                 else:
-                    pygame.draw.rect(self.screen, COLOR_WALL, pygame.Rect(i*self.room.BLOCK_WIDTH, j*self.room.BLOCK_HEIGHT, self.room.BLOCK_WIDTH, self.room.BLOCK_HEIGHT))
+                    pygame.draw.rect(self.screen, config.COLOR_WALL, pygame.Rect(i*config.BLOCK_WIDTH, j*config.BLOCK_HEIGHT, config.BLOCK_WIDTH, config.BLOCK_HEIGHT))
 
     def draw_particles(self):
         for particle in self.particles:
@@ -99,16 +100,16 @@ class Draw:
         self.person.draw(self.screen, self.room)
 
     def draw(self):
-        self.screen.fill(COLOR_BG)
-        #self.draw_grid()
+        self.screen.fill(config.COLOR_BG)
         self.draw_room()
         self.draw_particles()
+        self.draw_grid()
 
     def update(self, dt):
-        p_d = self.person.read_sensor(self.room)     
+        p_d = self.person.read_sensor(self.room)
         nu = 0
         for particle in self.particles:
-            if(self.room.freePos(particle.pos)):
+            if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
                 pt_d = particle.read_sensor(self.room)
                 particle.weight = w_gauss(p_d, pt_d)
                 nu += particle.weight
@@ -132,21 +133,21 @@ class Draw:
             new_particles.append(new_particle)
         self.particles = new_particles
         #update stuff
-        self.person.update(dt, self.room)
+        self.person.update(self.room)
         for p in self.particles:
-            p.follow(dt, self.person.acc)
+            p.follow(self.person.vel)
 
     def play(self):
         while True:
-            dt = self.clock.tick(FPS) / 1000.0
+            dt = self.clock.tick(config.FPS) / 1000.0
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
                     return
-            if self.playing == PLAYING:
+            if self.playing == config.PLAYING:
                 self.update(dt)
                 self.draw()
             pygame.display.update()
-            pygame.display.set_caption("pos {}".format(self.person.pos))
+            pygame.display.set_caption("acc {}".format(self.person.acc))
 
 def main():
     pygame.init()

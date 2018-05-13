@@ -1,7 +1,7 @@
 import math
 import random
 import pygame
-from config import *
+import config
 
 Vector2D = pygame.math.Vector2
 
@@ -9,16 +9,24 @@ def add_noise(level, *coords):
     return [x + random.uniform(-level, level) for x in coords]
 
 def add_some_noise(*coords):
-    return add_noise(0.1, *coords)
+    return add_noise(5, *coords)
 
 class Particle(object):
     def __init__(self, pos, color = None, radius = 5, weight = 1, noise = False):
+        posx = pos[0]
+        posy = pos[1]
         if noise:
-            pos[0], pos[1] = add_some_noise(pos[0],pos[1])
-        self.pos = Vector2D(pos)
+            posx, posy = add_some_noise(pos[0],pos[1])
+        else:
+            posx *= config.BLOCK_WIDTH
+            posy *= config.BLOCK_HEIGHT
+        self.pos = Vector2D((posx,posy))
         self.vel = Vector2D(0,0)
         self.direction = random.uniform(0, 360)
-        self.acc = Vector2D(math.cos(math.radians(self.direction)), math.sin(math.radians(self.direction)))
+        #self.acc = Vector2D(math.cos(math.radians(self.direction)), math.sin(math.radians(self.direction)))
+        self.acc = Vector2D(random.uniform(0, 1), random.uniform(0, 1))
+        self.acc *= config.MAX_ACC
+        self.acc.rotate_ip(self.direction)
         self.weight = random.uniform(0, 1)
         self.color = color
         if(color is None):
@@ -34,69 +42,93 @@ class Particle(object):
     def w2color(self, weight):
         return (int(weight*255), 0, int((1-weight)*255))
 
-    def getRect(self, room):
-        return pygame.Rect((self.pos[0]*room.BLOCK_WIDTH)-self.radius, (self.pos[1]*room.BLOCK_HEIGHT)-self.radius, self.radius*2, self.radius*2)
+    def getRect(self):
+        return pygame.Rect(self.pos[0]-self.radius, self.pos[1]-self.radius, self.radius*2, self.radius*2)
 
     def draw(self, screen, room):
-        pygame.draw.circle(screen, self.color, (int(self.pos[0]*room.BLOCK_WIDTH), int(self.pos[1]*room.BLOCK_HEIGHT)), self.radius, 0)
+        pygame.draw.circle(screen, self.color, (int(self.pos[0]), int(self.pos[1])), self.radius, 0)
 
     def bounce_bounds(self, pos, room):
-        normal = self.acc
-        if(int(pos[0]*room.BLOCK_WIDTH)-self.radius <= 0 or int(pos[0]*room.BLOCK_WIDTH)+self.radius >= room.size[1]*room.BLOCK_WIDTH):
-            normal[0] *= -1
-        elif(int(pos[1]*room.BLOCK_HEIGHT)-self.radius <= 0 or int(pos[1]*room.BLOCK_HEIGHT)+self.radius >= room.size[0]*room.BLOCK_HEIGHT):
-            normal[1] *= -1
-        return normal
+        if(pos[0]-self.radius <= 0 or pos[0]+self.radius >= room.size[1]*config.BLOCK_WIDTH):
+            self.vel[0] *= -1
+            self.acc[0] *= -1
+        elif(pos[1]-self.radius <= 0 or pos[1]+self.radius >= room.size[0]*config.BLOCK_HEIGHT):
+            self.vel[1] *= -1
+            self.acc[1] *= -1
 
-    def bounce_walls(self, pos, room):
-        #base on https://gamedev.stackexchange.com/questions/61705/pygame-colliderect-but-how-do-they-collide
-        normal = self.acc
-        rect = room.getRect(pos)
-        me = self.getRect(room)
-        ar = math.atan2(me.centery - me.top, me.right - me.centerx) # half of the angle of the right side
-        # construct the corner angles into an array to search for index such that the index indicates direction
-        # this is normalized into [0, 2π] to make searches easier (no negative numbers and stuff) 
-        dirint = [ 2*ar, math.pi, math.pi+2*ar, 2*math.pi]
-        # calculate angle towars the center of the other rectangle, + ar for normalization into
-        ad = math.atan2(me.centery - rect.centery, rect.centerx - me.centerx) + ar
-        # again normalization, sincen atan2 ouputs values in the range of [-π,π]
-        if ad < 0:
-            ad = 2*math.pi + ad
-        # search for the quadrant we are in and return it
-        for i in range(len(dirint)):
-            if ad < dirint[i]:
-                dir = i
-                break
-        if(dir == 0 or dir == 2):
-            normal[0]*=-1
+    def bounce_wall(self, ball, wall):
+        # #base on https://gamedev.stackexchange.com/questions/61705/pygame-colliderect-but-how-do-they-
+        # ar = math.atan2(ball.centery - ball.top, ball.right - ball.centerx) # half of the angle of the right side
+        # # construct the corner angles into an array to search for index such that the index indicates direction
+        # # this is normalized into [0, 2π] to make searches easier (no negative numbers and stuff) 
+        # dirint = [ 2*ar, math.pi, math.pi+2*ar, 2*math.pi]
+        # # calculate angle towars the center of the other rectangle, + ar for normalization into
+        # ad = math.atan2(ball.centery - wall.centery, wall.centerx - ball.centerx) + ar
+        # # again normalization, sincen atan2 ouputs values in the range of [-π,π]
+        # if ad < 0:
+        #     ad = 2*math.pi + ad
+        # # search for the quadrant we are in and return it
+        # for i in range(len(dirint)):
+        #     if ad < dirint[i]:
+        #         dir = i
+        #         break
+        # if(dir%2==0):
+        #     self.vel[0]*=-1
+        #     self.acc[0]*=-1
+        # else:
+        #     self.vel[1]*=-1
+        #     self.acc[1]*=-1
+
+        # Bounce cleanly off a 'floor' - no change in horizontal speed
+        if (wall.left < ball.centerx < wall.right):
+            vbounce = ball.centery - wall.centery
+            hbounce = 0
+
+		# Bounce cleanly off a 'wall' - no change in vertical speed
+        elif wall.top < ball.centery < wall.bottom:
+            vbounce = 0
+            hbounce = ball.centerx - wall.centerx
+			
+		# Otherwise, bounce off the corner
         else:
-            normal[1]*=-1
-        return normal
+            vbounce = ball.centery - wall.centery
+            hbounce = ball.centerx - wall.centerx
+
+        if vbounce>0:
+            self.vel[1] = abs(self.vel[1])
+            self.acc[1] = abs(self.acc[1])
+        elif vbounce<0:
+            self.vel[1] = -abs(self.vel[1])
+            self.acc[1] = -abs(self.acc[1])
+        if hbounce>0:
+            self.vel[0] = abs(self.vel[0])
+            self.acc[0] = abs(self.acc[0])
+        elif hbounce<0:
+            self.vel[0] = -abs(self.vel[0])
+            self.acc[0] = -abs(self.acc[0])
 
     def reflect(self, pos, room):
         #REFLECT OF BOUNDS OF SCREEN
-        normal = self.bounce_bounds(pos, room)
+        self.bounce_bounds(pos, room)
         #REFLECT OF WALLS
-        if(not room.freePos(pos)):
-            normal = self.bounce_walls(pos, room)
-        return normal
+        ball = self.getRect()
+        for wall in room.walls:
+            rWall = room.getRect(wall)
+            if(rWall.colliderect(ball)):
+                self.bounce_wall(ball, rWall)
 
-    def update(self, dt, room):
-        old_pos = self.pos
-        old_direction = self.direction
+    def update(self, room):
         #self.direction = math.degrees(math.atan(self.acc[1]/self.acc[0]))
         #self.direction = self.direction + 180 if self.direction < 0 else self.direction
-        self.acc = self.reflect(old_pos, room)
-        if(self.acc.length() > MAX_ACC):
-            self.acc.scale_to_length(MAX_ACC)
+        new_pos = self.pos + self.vel
+        self.reflect(new_pos, room)
         self.vel += self.acc
-        self.vel *= dt
-        if(self.vel.length() > MAX_SPEED):
-            self.vel.scale_to_length(MAX_SPEED)
-        new_pos = old_pos + self.vel
-        self.pos = new_pos
+        if(self.vel.length() > config.MAX_SPEED):
+            self.vel.scale_to_length(config.MAX_SPEED)
+        self.pos = self.pos + self.vel
 
-    def follow(self, dt, new_acc):
-        self.vel += new_acc
-        self.vel *= dt
+    def follow(self, new):
+        self.vel += new
+        if(self.vel.length() > config.MAX_SPEED):
+            self.vel.scale_to_length(config.MAX_SPEED)
         self.pos += self.vel
