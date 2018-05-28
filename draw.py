@@ -32,11 +32,6 @@ class Resample(object):
             return None
 
 def estimate(particles):
-    """
-    Compute the mean for all particles that have a reasonably good weight.
-    This is not part of the particle filter algorithm but rather an
-    addition to show the "best belief" for current position.
-    """
 
     m_x, m_y, m_count = 0, 0, 0
     for p in particles:
@@ -55,7 +50,6 @@ def estimate(particles):
     for p in particles:
         if math.hypot(p.pos[0]-m_x,p.pos[1]-m_y) < 50:
             m_count += 1
-    print(m_count, config.PARTICLE_COUNT * 0.95)
     return Particle((m_x, m_y),(255,255,0), 10), m_count > config.PARTICLE_COUNT * 0.95
 
 class Draw:
@@ -102,9 +96,7 @@ class Draw:
         for particle in self.particles:
             particle.draw(self.screen)
         self.person.draw(self.screen)
-        print(self.conf)
         if self.conf:
-            print(self.mparticle)
             self.mparticle.draw(self.screen)
 
     def draw(self):
