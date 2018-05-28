@@ -48,6 +48,9 @@ class Room(object):
         while True:
             pos = self.randomPos()
             if self.freePos(pos):
+                pos = list(pos)
+                pos[0] *= config.BLOCK_WIDTH
+                pos[1] *= config.BLOCK_HEIGHT
                 return pos
     def randomPos(self):
         x = random.uniform(0, self.size[1])

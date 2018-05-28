@@ -17,9 +17,6 @@ class Particle(object):
         posy = pos[1]
         if noise:
             posx, posy = add_some_noise(pos[0],pos[1])
-        else:
-            posx *= config.BLOCK_WIDTH
-            posy *= config.BLOCK_HEIGHT
         self.pos = Vector2D((posx,posy))
         self.vel = Vector2D(0,0)
         self.direction = random.uniform(0, 360)
@@ -45,7 +42,7 @@ class Particle(object):
     def getRect(self):
         return pygame.Rect(self.pos[0]-self.radius, self.pos[1]-self.radius, self.radius*2, self.radius*2)
 
-    def draw(self, screen, room):
+    def draw(self, screen):
         pygame.draw.circle(screen, self.color, (int(self.pos[0]), int(self.pos[1])), self.radius, 0)
 
     def bounce_bounds(self, pos, room):

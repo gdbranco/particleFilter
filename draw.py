@@ -3,6 +3,7 @@ import math
 from room import Room
 from particle import Particle
 import random
+import numpy as np
 import bisect
 import config
 
@@ -12,23 +13,25 @@ def w_gauss(a, b):
     g = math.e ** -(error ** 2 / (2 * sigma2))
     return g
 
-class WeightedDistribution(object):
+#Multimonial resample is not good will create new methods for this
+class Resample(object):
     def __init__(self, state):
         accum = 0.0
-        self.state = [p for p in state if p.weight > 0]
-        self.distribution = []
-        for x in self.state:
+        self.cumsum = []
+        self.state = state[:]
+        for x in state:
             accum += x.weight
-            self.distribution.append(accum)
+            self.cumsum.append(accum)
+        self.cumsum[-1] = 1
 
     def pick(self):
         try:
-            return self.state[bisect.bisect_left(self.distribution, random.uniform(0, 1))]
+            return self.state[bisect.bisect_left(self.cumsum, random.uniform(0, 1))]
         except IndexError:
             # Happens when all particles are improbable w=0
             return None
 
-def compute_mean_point(particles):
+def estimate(particles):
     """
     Compute the mean for all particles that have a reasonably good weight.
     This is not part of the particle filter algorithm but rather an
@@ -38,23 +41,22 @@ def compute_mean_point(particles):
     m_x, m_y, m_count = 0, 0, 0
     for p in particles:
         m_count += p.weight
-        m_x += p[0] * p.weight
-        m_y += p[1] * p.weight
+        m_x += p.pos[0] * p.weight
+        m_y += p.pos[1] * p.weight
 
     if m_count == 0:
         return -1, -1, False
 
     m_x /= m_count
     m_y /= m_count
-
     # Now compute how good that mean is -- check how many particles
     # actually are in the immediate vicinity
     m_count = 0
     for p in particles:
-        if math.hypot(p.x-m_x,p.y-m_y) < 1:
+        if math.hypot(p.pos[0]-m_x,p.pos[1]-m_y) < 50:
             m_count += 1
-
-    return m_x, m_y, m_count > config.PARTICLE_COUNT * 0.95
+    print(m_count, config.PARTICLE_COUNT * 0.95)
+    return Particle((m_x, m_y),(255,255,0), 10), m_count > config.PARTICLE_COUNT * 0.95
 
 class Draw:
     def __init__(self):
@@ -63,6 +65,7 @@ class Draw:
         self.screen = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
         self.playing = 1
+        self.conf = False
         self.room = Room((12,16),((1,0,0,0,0,1,1,1,2,1,1,1,1,0,0,1),
                                   (1,0,1,1,0,1,0,0,0,0,0,0,0,0,0,1),
                                   (1,0,1,1,0,1,0,0,0,0,0,0,0,1,1,1),
@@ -77,6 +80,7 @@ class Draw:
                                   (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)))
         self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
         self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
+        self.mparticle = [Particle(self.room.randomFreePos(), (255, 255, 0), 10)]
     
     def draw_grid(self):
         for x in range(0, config.SCREEN_WIDTH, config.BLOCK_WIDTH):
@@ -96,8 +100,12 @@ class Draw:
 
     def draw_particles(self):
         for particle in self.particles:
-            particle.draw(self.screen, self.room)
-        self.person.draw(self.screen, self.room)
+            particle.draw(self.screen)
+        self.person.draw(self.screen)
+        print(self.conf)
+        if self.conf:
+            print(self.mparticle)
+            self.mparticle.draw(self.screen)
 
     def draw(self):
         self.screen.fill(config.COLOR_BG)
@@ -122,7 +130,7 @@ class Draw:
             for p in self.particles:
                 p.weight /= nu
 
-        dist = WeightedDistribution(self.particles)
+        dist = Resample(self.particles)
 
         for i in range(len(self.particles)):
             p = dist.pick()
@@ -133,6 +141,7 @@ class Draw:
             new_particles.append(new_particle)
         self.particles = new_particles
         #update stuff
+        self.mparticle, self.conf = estimate(self.particles)
         self.person.update(self.room)
         for p in self.particles:
             p.follow(self.person.vel)
