@@ -2,21 +2,17 @@ import math
 import random
 import pygame
 import config
+from noise import Noise
 
 Vector2D = pygame.math.Vector2
-
-def add_noise(level, *coords):
-    return [x + random.uniform(-level, level) for x in coords]
-
-def add_some_noise(*coords):
-    return add_noise(5, *coords)
 
 class Particle(object):
     def __init__(self, pos, color = None, radius = 5, weight = 1, noise = False):
         posx = pos[0]
         posy = pos[1]
         if noise:
-            posx, posy = add_some_noise(pos[0],pos[1])
+            posx = Noise.add_noise(5, pos[0])
+            posy = Noise.add_noise(5, pos[1])
         self.pos = Vector2D((posx,posy))
         self.vel = Vector2D(0,0)
         self.direction = random.uniform(0, 360)

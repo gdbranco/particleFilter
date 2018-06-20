@@ -2,6 +2,8 @@ import random
 import pygame
 import math
 import config
+
+from noise import Noise
 class Room(object):
     # 0 Empty
     # 1 Occupied
@@ -42,7 +44,7 @@ class Room(object):
             d = math.hypot(beacon[0]-pos[0]//config.BLOCK_WIDTH, beacon[1]-pos[1]//config.BLOCK_HEIGHT)
             if(d < distance):
                 distance = d
-        return distance
+        return Noise.add_noise(1, distance)
 
     def randomFreePos(self):
         while True:
