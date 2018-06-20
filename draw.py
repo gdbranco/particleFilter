@@ -80,7 +80,6 @@ class Draw:
         self.screen = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
         self.playing = 1
-        self.conf = False
         self.room = Room((12,16),((1,0,0,0,0,1,1,1,2,1,1,1,1,0,0,1),
                                   (1,0,1,1,0,1,0,0,0,0,0,0,0,0,0,1),
                                   (1,0,1,1,0,1,0,0,0,0,0,0,0,1,1,1),
@@ -92,11 +91,15 @@ class Draw:
                                   (1,0,0,1,0,0,0,0,0,0,0,0,0,0,1,1),
                                   (1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1),
                                   (1,0,0,1,2,1,1,1,1,1,1,1,1,1,1,1),
-                                  (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)))
+                                  (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)))         
+        self.reset()
+    
+    def reset(self):
+        self.conf = False
         self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
         self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
         self.mparticle = [Particle(self.room.randomFreePos(), (255, 255, 0), 10)]
-    
+
     def draw_grid(self):
         for x in range(0, config.SCREEN_WIDTH, config.BLOCK_WIDTH):
             pygame.draw.line(self.screen, config.TEXT_COLOR, (x,0), (x, config.SCREEN_HEIGHT))
@@ -126,7 +129,7 @@ class Draw:
         self.draw_particles()
         self.draw_grid()
 
-    def update(self, dt):
+    def update(self):
         p_d = self.person.read_sensor(self.room)
         somaPeso = 0
         for particle in self.particles:
@@ -142,7 +145,7 @@ class Draw:
         new_particles = []
         pesos = [particle.weight for particle in self.particles]
         dist = Resample(pesos, somaPeso)
-        indices = dist.pick(config.RESAMPLE)
+        indices = dist.pick(config.RESAMPLE[config.RESAMPLE_INDEX])
         for i in indices:
             new_particles.append(Particle(self.particles[i].pos, noise=True))
         self.particles = new_particles
@@ -152,17 +155,24 @@ class Draw:
         for p in self.particles:
             p.follow(self.person.vel)
 
+    def handle_input(self, e):
+        if(e.key == pygame.K_r):
+            self.reset()
+        elif(e.key == pygame.K_s):
+            config.RESAMPLE_INDEX = (config.RESAMPLE_INDEX + 1) % len(config.RESAMPLE)
+
     def play(self):
         while True:
-            dt = self.clock.tick(config.FPS) / 1000.0
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
                     return
+                elif e.type == pygame.KEYDOWN:
+                    self.handle_input(e)
             if self.playing == config.PLAYING:
-                self.update(dt)
+                self.update()
                 self.draw()
             pygame.display.update()
-            pygame.display.set_caption("acc {}".format(self.person.acc))
+            pygame.display.set_caption("Resampling Method: {}".format(config.RESAMPLE[config.RESAMPLE_INDEX]))
 
 def main():
     pygame.init()

@@ -16,5 +16,6 @@ PLAYING = 1
 PARTICLE_COUNT = 1500
 MAX_SPEED = 5
 MAX_ACC = 1
-RESAMPLE = "systematic"
+RESAMPLE = ["multinomial", "systematic", "stratified"]
+RESAMPLE_INDEX = 0 % len(RESAMPLE)
 MIN_DIST = 50
