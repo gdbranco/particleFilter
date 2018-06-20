@@ -15,24 +15,45 @@ def w_gauss(a, b):
 
 #Multimonial resample is not good will create new methods for this
 class Resample(object):
-    def __init__(self, state):
-        accum = 0.0
-        self.cumsum = []
-        self.state = state[:]
-        for x in state:
-            accum += x.weight
-            self.cumsum.append(accum)
-        self.cumsum[-1] = 1
-
-    def pick(self):
-        try:
-            return self.state[bisect.bisect_left(self.cumsum, random.uniform(0, 1))]
-        except IndexError:
-            # Happens when all particles are improbable w=0
-            return None
-
+    import numpy as np
+    def __init__(self, state, norm):
+        self.state = np.asarray(state)
+        self.state = self.state / norm if norm else self.state
+        self.cumsum = self.state.cumsum()
+        self.cumsum[-1] = 1 # garantir que a soma termina em 1
+    def pick(self, type="multinomial"):
+        if(type=="multinomial"):
+            self.state = sorted(self.state)
+            return np.searchsorted(self.cumsum, np.random.random(len(self.state)))
+        elif(type=="systematic"):
+            N = len(self.state)
+            # DIVIDIR EM N PARTES SELECIONANDO O MESMO RANDOM PARA TODOS
+            posicoes = (np.random.random(N) + range(N)) / N
+            indices = np.zeros(N, int)
+            i, j = 0, 0
+            while(i<N):
+                if(posicoes[i] < self.cumsum[j]):
+                    indices[i] = j
+                    i+=1
+                else:
+                    j+=1
+            return indices
+        elif(type=="stratified"):
+            N = len(self.state)
+            # DIVIDIR EM N PARTES SELECIONANDO UM RANDOM PARA CADA PARTE
+            posicoes = (np.random.random() + np.arange(N)) / N
+            indices = np.zeros(N, int)
+            i, j = 0, 0
+            while(i<N):
+                if(posicoes[i] < self.cumsum[j]):
+                    indices[i] = j
+                    i+=1
+                else:
+                    j+=1
+            return indices
+        else: # residual
+            pass
 def estimate(particles):
-
     m_x, m_y, m_count = 0, 0, 0
     for p in particles:
         m_count += p.weight
@@ -40,7 +61,7 @@ def estimate(particles):
         m_y += p.pos[1] * p.weight
 
     if m_count == 0:
-        return -1, -1, False
+        return Particle((-1, -1), (0,0,0)), False
 
     m_x /= m_count
     m_y /= m_count
@@ -48,7 +69,7 @@ def estimate(particles):
     # actually are in the immediate vicinity
     m_count = 0
     for p in particles:
-        if math.hypot(p.pos[0]-m_x,p.pos[1]-m_y) < 50:
+        if math.hypot(p.pos[0]-m_x,p.pos[1]-m_y) < config.MIN_DIST:
             m_count += 1
     return Particle((m_x, m_y),(255,255,0), 10), m_count > config.PARTICLE_COUNT * 0.95
 
@@ -107,30 +128,23 @@ class Draw:
 
     def update(self, dt):
         p_d = self.person.read_sensor(self.room)
-        nu = 0
+        somaPeso = 0
         for particle in self.particles:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
                 pt_d = particle.read_sensor(self.room)
                 particle.weight = w_gauss(p_d, pt_d)
-                nu += particle.weight
+                somaPeso += particle.weight
             else:
                 particle.weight = 0
             particle.color = particle.w2color(particle.weight)
         
+        # RESAMPLE STUFF
         new_particles = []
-        if nu:
-            for p in self.particles:
-                p.weight /= nu
-
-        dist = Resample(self.particles)
-
-        for i in range(len(self.particles)):
-            p = dist.pick()
-            if p is None:
-                new_particle = Particle(self.room.randomFreePos())
-            else:
-                new_particle = Particle(p.pos, noise=True)
-            new_particles.append(new_particle)
+        pesos = [particle.weight for particle in self.particles]
+        dist = Resample(pesos, somaPeso)
+        indices = dist.pick(config.RESAMPLE)
+        for i in indices:
+            new_particles.append(Particle(self.particles[i].pos, noise=True))
         self.particles = new_particles
         #update stuff
         self.mparticle, self.conf = estimate(self.particles)
@@ -157,3 +171,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # r = Resample([1,2,3,4,5], 15)
+    # print(r.pick("systematic"))
+    # print(r.pick("stratified"))
+    # print(r.pick())
