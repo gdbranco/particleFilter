@@ -39,6 +39,7 @@ class Draw:
         self.font = pygame.font.SysFont('Arial', 30)
         self.help = False
         self.set_conf = False
+        self.path = False
         self.window = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
         self.screen = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
@@ -61,6 +62,7 @@ class Draw:
         if(p):
             self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
         self.conf = False
+        self.path = False
         self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
         self.mparticle = [Particle(self.room.randomFreePos(), config.COLOR_MPARTICLE, 10)]
 
@@ -98,6 +100,10 @@ class Draw:
         if self.conf or self.set_conf:
             self.mparticle.draw(self.screen)
 
+    def draw_path(self):
+        if(len(self.point_list) > 0):
+            pygame.draw.lines(self.screen, (255, 0, 0), False, self.point_list, 5)
+
     def draw(self):
         self.screen.fill(config.COLOR_BG)
         self.draw_room()
@@ -105,6 +111,8 @@ class Draw:
         self.draw_grid()
         if(self.help):
             self.draw_help()
+        if(self.path):
+            self.draw_path()
 
     def update(self):
         p_d = self.person.read_sensor(self.room)
@@ -130,9 +138,9 @@ class Draw:
         self.particles = new_particles
         # UPDATE STUFF
         self.mparticle, self.conf = meanEstimative(self.particles)
-        self.person.update(self.room)
-        for p in self.particles:
-            p.follow(self.person.vel)
+        #self.person.update(self.room)
+        #for p in self.particles:
+        #    p.follow(self.person.vel)
 
     def handle_input(self, e):
         if(e.key == pygame.K_r): # Restart Everyhing
@@ -153,6 +161,12 @@ class Draw:
                     return
                 elif e.type == pygame.KEYDOWN:
                     self.handle_input(e)
+                elif e.type == pygame.MOUSEBUTTONUP:
+                    pos = pygame.mouse.get_pos()
+                    dest = (pos[0]//config.BLOCK_WIDTH, pos[1]//config.BLOCK_HEIGHT)
+                    source = (self.person.pos[0]//config.BLOCK_WIDTH, self.person.pos[1]//config.BLOCK_HEIGHT)
+                    self.point_list = self.room.astar((source[1],source[0]), (dest[1],dest[0]))
+                    self.path = True
             if self.playing == config.PLAYING:
                 self.update()
                 self.draw()

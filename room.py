@@ -4,6 +4,8 @@ import math
 import config
 import sys
 import heapq
+import numpy as np
+from scipy.interpolate import interp2d
 
 from noise import Noise
 class Room(object):
@@ -51,12 +53,12 @@ class Room(object):
     def h(self, source, dest):
         return math.hypot(source[0]-dest[0],source[1]-dest[1])
 
-    def reconstruct_path(self, camefrom, current):
+    def reconstruct_path(self, camefrom, current, source):
         total_path = []
-        total_path.append(current)
+        total_path.append((current[1]*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2, current[0]*config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2))
         while(current in camefrom.keys()):
             current = camefrom[current]
-            total_path.append(current)
+            total_path.append((current[1]*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2, current[0]*config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2))
         return list(reversed(total_path))
 
     def astar(self, source, dest):
@@ -69,17 +71,17 @@ class Room(object):
         while(len(opens)):
             current = heapq.heappop(opens)[1]
             if(current == dest):
-                return self.reconstruct_path(camefrom, current)
+                return self.reconstruct_path(camefrom, current, source)
 
             closeds.add(current)
             neighbors = [(current[0]+1,current[1]), # S
-                         (current[0]+1,current[1]-1), # SW
+                         #(current[0]+1,current[1]-1), # SW
                          (current[0],current[1]-1), # W
-                         (current[0]-1,current[1]-1), # NW
+                         #(current[0]-1,current[1]-1), # NW
                          (current[0]-1,current[1]), # N
-                         (current[0]-1,current[1]+1), #NE
-                         (current[0],current[1]+1), # E
-                         (current[0]+1,current[1]+1)] # SE
+                         #(current[0]-1,current[1]+1), #NE
+                         (current[0],current[1]+1)] # E
+                         #(current[0]+1,current[1]+1)] # SE
             # print("current: ", current)
             for n in neighbors:
                 # print("n: ", n)
@@ -134,7 +136,7 @@ def main():
                          (0,0,0,0,0,0,0,1,1,1,1,1,1,1),
                          (0,0,1,0,0,1,1,1,1,1,1,1,1,1)))
     print(lab)
-    print(lab.astar((0,13),(2,0)))
-
+    path = lab.astar((0,13),(2,0))
+    print(path)
 if __name__ == "__main__":
     main()
