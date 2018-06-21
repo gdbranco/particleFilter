@@ -30,7 +30,7 @@ class Particle(object):
         return "({}, {}) - {}".format(self.pos[0],self.pos[1],self.weight)
 
     def read_sensor(self, room):
-        return room.d2NearestBeacon(self.pos)
+        return room.d2Beacons(self.pos)
 
     def w2color(self, weight):
         return (int(weight*255), 0, int((1-weight)*255))

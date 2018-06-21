@@ -38,6 +38,7 @@ class Draw:
                    # if you want to use this module.
         self.font = pygame.font.SysFont('Arial', 30)
         self.help = False
+        self.set_conf = False
         self.window = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
         self.screen = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
@@ -94,7 +95,7 @@ class Draw:
         for particle in self.particles:
             particle.draw(self.screen)
         self.person.draw(self.screen)
-        if self.conf:
+        if self.conf or self.set_conf:
             self.mparticle.draw(self.screen)
 
     def draw(self):
@@ -142,6 +143,9 @@ class Draw:
             config.RESAMPLE_INDEX = (config.RESAMPLE_INDEX + 1) % len(config.RESAMPLE)
         elif(e.key == pygame.K_h): # HELP
             self.help = not self.help
+        elif(e.key == pygame.K_c):
+            self.set_conf = not self.set_conf
+            
     def play(self):
         while True:
             for e in pygame.event.get():
