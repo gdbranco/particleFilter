@@ -4,12 +4,14 @@ import math
 # My stuff
 import config
 from room import Room
+from noise import Noise
 from particle import Particle
 from resample import Resample
 
-sigma2 = 0.9 ** 2
+
 def w_gauss(a, b):
-    error = a - b
+    sigma2 = 0.9 ** 2
+    error = (a - b) ** 2
     g = math.e ** -(error ** 2 / (2 * sigma2))
     return g
 
@@ -61,7 +63,7 @@ class Draw:
     
     def reset(self, p=1):
         if(p):
-            self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
+            self.person = Particle((14*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2,0 * config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2), (0, 255, 0), 10)
             self.path = False
         self.conf = False
         self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
@@ -120,7 +122,7 @@ class Draw:
         somaPeso = 0
         for particle in self.particles:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
-                pt_d = particle.read_sensor(self.room)
+                pt_d = Noise.add_noise(2, particle.read_sensor(self.room))
                 particle.weight = w_gauss(p_d, pt_d)
                 somaPeso += particle.weight
             else:

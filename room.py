@@ -48,7 +48,7 @@ class Room(object):
             d = math.hypot(beacon[0]-pos[0]//config.BLOCK_WIDTH, beacon[1]-pos[1]//config.BLOCK_HEIGHT)
             if(d < distance):
                 distance = d
-        return Noise.add_noise(1, distance)
+        return distance
 
     def h(self, source, dest):
         return math.hypot(source[0]-dest[0],source[1]-dest[1])
