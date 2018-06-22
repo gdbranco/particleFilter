@@ -1,5 +1,3 @@
-import math
-
 COLOR_BG = (0, 0, 0)
 COLOR_WALL = (45, 45, 45)
 COLOR_EMPTY = (255, 255, 255)

@@ -40,6 +40,7 @@ class Draw:
         self.help = False
         self.set_conf = False
         self.path = False
+        self.point_list = []
         self.window = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
         self.screen = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
@@ -61,8 +62,8 @@ class Draw:
     def reset(self, p=1):
         if(p):
             self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
+            self.path = False
         self.conf = False
-        self.path = False
         self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
         self.mparticle = [Particle(self.room.randomFreePos(), config.COLOR_MPARTICLE, 10)]
 
@@ -101,7 +102,7 @@ class Draw:
             self.mparticle.draw(self.screen)
 
     def draw_path(self):
-        if(len(self.point_list) > 0):
+        if(len(self.point_list) > 1):
             pygame.draw.lines(self.screen, (255, 0, 0), False, self.point_list, 5)
 
     def draw(self):
@@ -138,9 +139,9 @@ class Draw:
         self.particles = new_particles
         # UPDATE STUFF
         self.mparticle, self.conf = meanEstimative(self.particles)
-        #self.person.update(self.room)
-        #for p in self.particles:
-        #    p.follow(self.person.vel)
+        move_vector = self.person.update(self.room, self.point_list)
+        for p in self.particles:
+           p.follow(move_vector)
 
     def handle_input(self, e):
         if(e.key == pygame.K_r): # Restart Everyhing
@@ -166,6 +167,7 @@ class Draw:
                     dest = (pos[0]//config.BLOCK_WIDTH, pos[1]//config.BLOCK_HEIGHT)
                     source = (self.person.pos[0]//config.BLOCK_WIDTH, self.person.pos[1]//config.BLOCK_HEIGHT)
                     self.point_list = self.room.astar((source[1],source[0]), (dest[1],dest[0]))
+                    self.person.target = 1
                     self.path = True
             if self.playing == config.PLAYING:
                 self.update()

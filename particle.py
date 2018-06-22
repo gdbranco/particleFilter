@@ -22,6 +22,7 @@ class Particle(object):
         self.acc.rotate_ip(self.direction)
         self.weight = random.uniform(0, 1)
         self.color = color
+        self.target = 0
         if(color is None):
             self.color = self.w2color(self.weight)
         self.radius = radius
@@ -110,18 +111,21 @@ class Particle(object):
             if(rWall.colliderect(ball)):
                 self.bounce_wall(ball, rWall)
 
-    def update(self, room):
+    def update(self, room, target_list):
         #self.direction = math.degrees(math.atan(self.acc[1]/self.acc[0]))
         #self.direction = self.direction + 180 if self.direction < 0 else self.direction
-        new_pos = self.pos + self.vel
-        self.reflect(new_pos, room)
-        self.vel += self.acc
-        if(self.vel.length() > config.MAX_SPEED):
-            self.vel.scale_to_length(config.MAX_SPEED)
-        self.pos = self.pos + self.vel
-
-    def follow(self, new):
-        self.vel += new
-        if(self.vel.length() > config.MAX_SPEED):
-            self.vel.scale_to_length(config.MAX_SPEED)
-        self.pos += self.vel
+        if(len(target_list) > 1):
+            if(self.target is not None):
+                target = target_list[self.target]
+                target_vector = target - self.pos
+                if(target_vector.length() < 2):
+                    self.target += 1
+                    if(self.target == len(target_list)):
+                        self.target = None
+                move_vector = target_vector.normalize()
+                self.pos = self.pos + move_vector
+                return move_vector
+                
+    def follow(self, move_vector):
+        if(move_vector is not None):
+            self.pos += move_vector
