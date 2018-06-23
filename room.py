@@ -5,8 +5,7 @@ import config
 import sys
 import heapq
 import numpy as np
-from scipy.interpolate import interp2d
-
+from scipy.misc import comb
 from noise import Noise
 class Room(object):
     # 0 Empty
@@ -59,8 +58,14 @@ class Room(object):
         while(current in camefrom.keys()):
             current = camefrom[current]
             total_path.append((current[1]*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2, current[0]*config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2))
-        return list(reversed(total_path))
 
+        total_path = list(reversed(total_path))
+        bezier_path = self.bezier_curve(total_path,50)
+        for i, p in enumerate(bezier_path):
+            search_pos = (p[0]//config.BLOCK_WIDTH,p[1]//config.BLOCK_HEIGHT)
+            if(not self.freePos(search_pos)):
+                bezier_path[i] = self.closestFreePos(((search_pos[1], search_pos[0])))
+        return bezier_path
     def astar(self, source, dest):
         opens = []
         closeds = set()
@@ -75,13 +80,13 @@ class Room(object):
 
             closeds.add(current)
             neighbors = [(current[0]+1,current[1]), # S
-                         #(current[0]+1,current[1]-1), # SW
+                         (current[0]+1,current[1]-1), # SW
                          (current[0],current[1]-1), # W
-                         #(current[0]-1,current[1]-1), # NW
+                         (current[0]-1,current[1]-1), # NW
                          (current[0]-1,current[1]), # N
-                         #(current[0]-1,current[1]+1), #NE
-                         (current[0],current[1]+1)] # E
-                         #(current[0]+1,current[1]+1)] # SE
+                         (current[0]-1,current[1]+1), #NE
+                         (current[0],current[1]+1), # E
+                         (current[0]+1,current[1]+1)] # SE
             # print("current: ", current)
             for n in neighbors:
                 # print("n: ", n)
@@ -113,6 +118,27 @@ class Room(object):
         x = random.uniform(0, self.size[1])
         y = random.uniform(0, self.size[0])
         return (x, y)
+
+    def closestFreePos(self, pos):
+        neighbors = [(pos[0]+1,pos[1]), # S
+                     (pos[0]+1,pos[1]-1), # SW
+                     (pos[0],pos[1]-1), # W
+                     (pos[0]-1,pos[1]-1), # NW
+                     (pos[0]-1,pos[1]), # N
+                     (pos[0]-1,pos[1]+1), #NE
+                     (pos[0],pos[1]+1), # E
+                     (pos[0]+1,pos[1]+1)] # SE
+        distance = float("inf")
+        closest = None
+        for i, n in enumerate(neighbors):
+            if(not self.freePos((n[1], n[0]))):
+                continue
+            d = math.hypot(pos[0] - n[0], pos[1] - n[1])  
+            if(d < distance):
+                distance = d
+                closest = n
+        return (closest[1]*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2, closest[0]*config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2)
+        
     def freePos(self, pos):
         if(pos[0] < 0 or pos[1] < 0 or pos[0] >= self.size[1] or pos[1] >= self.size[0]):
             return False
@@ -122,6 +148,23 @@ class Room(object):
     def getBlock(self, pos):
         return (int(pos[1]), int(pos[0]))
 
+    def bernstein_poly(self, n, i, t):
+        n-=1
+        return comb(n, i) * ( t**i ) * (1 - t)**(n-i)
+
+    def bezier_curve(self, points, nTimes=1000):
+
+        nPoints = len(points)
+        xPoints = np.array([p[0] for p in points])
+        yPoints = np.array([p[1] for p in points])
+
+        t = np.linspace(0.0, 1.0, nTimes)
+
+        polynomial_array = np.array([self.bernstein_poly(nPoints, i, t) for i in range(0, nPoints)])
+        xvals = np.dot(xPoints, polynomial_array)
+        yvals = np.dot(yPoints, polynomial_array)
+
+        return list(zip(xvals, yvals))
 
 def main():
     lab = Room((11,14), ((0,0,0,0,1,1,1,1,1,1,1,1,0,0),

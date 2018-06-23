@@ -36,3 +36,14 @@ class Resample(object):
         else: # residual
             pass
         return indices
+
+
+def main():
+    lista = [1,2,3,4,5]
+    r = Resample(lista, sum(lista))
+    print(r.pick("systematic"))
+    print(r.pick("stratified"))
+    print(r.pick())
+
+if __name__ == '__main__':
+    main()

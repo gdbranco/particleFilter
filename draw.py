@@ -183,7 +183,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # r = Resample([1,2,3,4,5], 15)
-    # print(r.pick("systematic"))
-    # print(r.pick("stratified"))
-    # print(r.pick())
