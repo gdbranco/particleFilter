@@ -81,13 +81,13 @@ class Room(object):
 
             closeds.add(current)
             neighbors = [(current[0]+1,current[1]), # S
-                         #(current[0]+1,current[1]-1), # SW
+                         (current[0]+1,current[1]-1), # SW
                          (current[0],current[1]-1), # W
-                         #(current[0]-1,current[1]-1), # NW
+                         (current[0]-1,current[1]-1), # NW
                          (current[0]-1,current[1]), # N
-                         #(current[0]-1,current[1]+1), #NE
-                         (current[0],current[1]+1)] # E
-                         #(current[0]+1,current[1]+1)] # SE
+                         (current[0]-1,current[1]+1), #NE
+                         (current[0],current[1]+1), # E
+                         (current[0]+1,current[1]+1)] # SE
             # print("current: ", current)
             for n in neighbors:
                 # print("n: ", n)
