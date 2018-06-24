@@ -5,6 +5,7 @@ class Resample(object):
         self.state = self.state / norm if norm else self.state
         self.cumsum = self.state.cumsum()
         self.cumsum[-1] = 1 # garantir que a soma termina em 1
+
     def pick(self, type="multinomial"):
         if(type=="multinomial"):
             self.state = sorted(self.state)

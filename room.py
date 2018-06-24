@@ -60,12 +60,13 @@ class Room(object):
             total_path.append((current[1]*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2, current[0]*config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2))
 
         total_path = list(reversed(total_path))
-        bezier_path = self.bezier_curve(total_path,50)
-        for i, p in enumerate(bezier_path):
-            search_pos = (p[0]//config.BLOCK_WIDTH,p[1]//config.BLOCK_HEIGHT)
-            if(not self.freePos(search_pos)):
-                bezier_path[i] = self.closestFreePos(((search_pos[1], search_pos[0])))
-        return bezier_path
+        # bezier_path = self.bezier_curve(total_path,50)
+        # for i, p in enumerate(bezier_path):
+        #     search_pos = (p[0]//config.BLOCK_WIDTH,p[1]//config.BLOCK_HEIGHT)
+        #     if(not self.freePos((search_pos[1],search_pos[0]))):
+        #         bezier_path[i] = self.closestFreePos(((search_pos[1], search_pos[0])))
+        total_path = self.catmull_rom(total_path)
+        return total_path
     def astar(self, source, dest):
         opens = []
         closeds = set()
@@ -80,13 +81,13 @@ class Room(object):
 
             closeds.add(current)
             neighbors = [(current[0]+1,current[1]), # S
-                         (current[0]+1,current[1]-1), # SW
+                         #(current[0]+1,current[1]-1), # SW
                          (current[0],current[1]-1), # W
-                         (current[0]-1,current[1]-1), # NW
+                         #(current[0]-1,current[1]-1), # NW
                          (current[0]-1,current[1]), # N
-                         (current[0]-1,current[1]+1), #NE
-                         (current[0],current[1]+1), # E
-                         (current[0]+1,current[1]+1)] # SE
+                         #(current[0]-1,current[1]+1), #NE
+                         (current[0],current[1]+1)] # E
+                         #(current[0]+1,current[1]+1)] # SE
             # print("current: ", current)
             for n in neighbors:
                 # print("n: ", n)
@@ -114,6 +115,7 @@ class Room(object):
                 pos[0] *= config.BLOCK_WIDTH
                 pos[1] *= config.BLOCK_HEIGHT
                 return pos
+
     def randomPos(self):
         x = random.uniform(0, self.size[1])
         y = random.uniform(0, self.size[0])
@@ -121,22 +123,21 @@ class Room(object):
 
     def closestFreePos(self, pos):
         neighbors = [(pos[0]+1,pos[1]), # S
-                     (pos[0]+1,pos[1]-1), # SW
+                     #(pos[0]+1,pos[1]-1), # SW
                      (pos[0],pos[1]-1), # W
-                     (pos[0]-1,pos[1]-1), # NW
+                     #(pos[0]-1,pos[1]-1), # NW
                      (pos[0]-1,pos[1]), # N
-                     (pos[0]-1,pos[1]+1), #NE
-                     (pos[0],pos[1]+1), # E
-                     (pos[0]+1,pos[1]+1)] # SE
+                     #(pos[0]-1,pos[1]+1), #NE
+                     (pos[0],pos[1]+1)] # E
+                     #(pos[0]+1,pos[1]+1)] # SE
         distance = float("inf")
         closest = None
         for i, n in enumerate(neighbors):
             if(not self.freePos((n[1], n[0]))):
                 continue
-            d = math.hypot(pos[0] - n[0], pos[1] - n[1])  
+            d = abs(pos[0] - n[0]) - abs(pos[1] - n[1])
             if(d < distance):
-                distance = d
-                closest = n
+                distance, closest = d, n
         return (closest[1]*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2, closest[0]*config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2)
         
     def freePos(self, pos):
@@ -166,6 +167,25 @@ class Room(object):
 
         return list(zip(xvals, yvals))
 
+    def catmull_rom(self, P):
+        cat_list = []
+        for j in range( 1, len(P)-2 ): 
+            for t in range( 10 ):
+                p = self.spline_4p( t/10.0, P[j-1], P[j], P[j+1], P[j+2] )
+                cat_list.append(p)
+        cat_list.append(P[-2])
+        cat_list.append(P[-1])
+        return cat_list
+
+    def spline_4p(self, t, p_1, p0, p1, p2 ):
+            # wikipedia Catmull-Rom -> Cubic_Hermite_spline
+            # 0 -> p0,  1 -> p1,  1/2 -> (- p_1 + 9 p0 + 9 p1 - p2) / 16
+        # assert 0 <= t <= 1
+        return tuple((
+            t*((2-t)*t - 1)       * np.array(p_1)
+            + (t*t*(3*t - 5) + 2) * np.array(p0)
+            + t*((4 - 3*t)*t + 1) * np.array(p1)
+            + ((t-1)*t**2)        * np.array(p2) ) / 2)
 def main():
     lab = Room((11,14), ((0,0,0,0,1,1,1,1,1,1,1,1,0,0),
                          (0,1,1,1,1,1,1,1,1,1,0,0,0,0),
