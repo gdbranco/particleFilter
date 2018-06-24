@@ -175,6 +175,7 @@ class Room(object):
                 cat_list.append(p)
         cat_list.append(P[-2])
         cat_list.append(P[-1])
+        cat_list.insert(0, P[0])
         return cat_list
 
     def spline_4p(self, t, p_1, p0, p1, p2 ):
