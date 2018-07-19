@@ -18,3 +18,4 @@ MAX_ACC = 1
 RESAMPLE = ["multinomial", "systematic", "stratified"]
 RESAMPLE_INDEX = 1 % len(RESAMPLE)
 MIN_DIST = 50
+START_POS = None

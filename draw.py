@@ -9,10 +9,9 @@ from particle import Particle
 from resample import Resample
 
 
-def w_gauss(a, b):
-    sigma2 = .9 ** 2
-    error = (a - b) ** 2
-    g = math.e ** -(error ** 2 / (2 * sigma2))
+def gaussian_kernel(x, sigma):
+    # http://www.stat.wisc.edu/~mchung/teaching/MIA/reading/diffusion.gaussian.kernel.pdf.pdf
+    g = (math.e ** -(x ** 2 / (2 * sigma **2))) * (1 / math.sqrt(math.pi * 2) * sigma)
     return g
 
 def meanEstimative(particles):
@@ -57,12 +56,14 @@ class Draw:
                                   (1,0,0,1,0,0,0,0,0,0,0,0,0,0,1,1),
                                   (1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1),
                                   (1,0,0,1,2,1,1,1,1,1,1,1,1,1,1,1),
-                                  (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)))         
+                                  (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)))
         self.reset()
     
     def reset(self, p=1):
         if(p):
-            self.person = Particle((14*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2,0 * config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2), (0, 255, 0), 10)
+            #self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
+            self.person = Particle(config.START_POS, (0, 255, 0), 10)            
+            self.person.target = 0
             self.path = False
         self.conf = False
         self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
@@ -117,15 +118,21 @@ class Draw:
             self.draw_path()
 
     def update(self):
+        genes = []
         p_d = self.person.read_sensor(self.room)
         somaPeso = 0
         for particle in self.particles:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
                 pt_d = Noise.add_noise(2, particle.read_sensor(self.room))
-                particle.weight = sorted(w_gauss(p_d, pt_d))[0]
+                #particle.weight = sorted(w_gauss(p_d, pt_d))[0]
+                errors = p_d - pt_d
+                weights = gaussian_kernel(errors, .9)
+                genes.append(weights)
+                particle.weight = weights.mean()
                 somaPeso += particle.weight
             else:
                 particle.weight = 0
+                genes.append([999, 999, 999])
             particle.color = particle.w2color(particle.weight)
         
         # RESAMPLE STUFF
@@ -134,6 +141,8 @@ class Draw:
         dist = Resample(pesos, somaPeso)
         indices = dist.pick(config.RESAMPLE[config.RESAMPLE_INDEX])
         # CROSSOVER STUFF
+        #print(genes)
+        #print(pesos)
         # MUTATE STUFF
         for i in indices:
             new_particles.append(Particle(self.particles[i].pos, noise=True))
