@@ -42,12 +42,11 @@ class Room(object):
         return pygame.Rect(x,y, config.BLOCK_WIDTH, config.BLOCK_HEIGHT)
 
     def d2Beacons(self, pos):
-        distance = float("inf")
+        distance = []
         for beacon in self.beacons:
-            d = math.hypot(beacon[0]-pos[0]//config.BLOCK_WIDTH, beacon[1]-pos[1]//config.BLOCK_HEIGHT)
-            if(d < distance):
-                distance = d
-        return distance
+            d = math.hypot(beacon[0]-pos[0]/config.BLOCK_WIDTH, beacon[1]-pos[1]/config.BLOCK_HEIGHT)
+            distance.append(d)
+        return np.array(distance)
 
     def h(self, source, dest):
         return math.hypot(source[0]-dest[0],source[1]-dest[1])

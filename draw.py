@@ -10,7 +10,7 @@ from resample import Resample
 
 
 def w_gauss(a, b):
-    sigma2 = 0.9 ** 2
+    sigma2 = .9 ** 2
     error = (a - b) ** 2
     g = math.e ** -(error ** 2 / (2 * sigma2))
     return g
@@ -25,8 +25,7 @@ def meanEstimative(particles):
             return Particle((-1, -1), (0,0,0)), False
         m_x /= m_count
         m_y /= m_count
-        # Now compute how good that mean is -- check how many particles
-        # actually are in the immediate vicinity
+        
         m_count = 0
         for p in particles:
             if math.hypot(p.pos[0]-m_x,p.pos[1]-m_y) < config.MIN_DIST:
@@ -123,7 +122,7 @@ class Draw:
         for particle in self.particles:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
                 pt_d = Noise.add_noise(2, particle.read_sensor(self.room))
-                particle.weight = w_gauss(p_d, pt_d)
+                particle.weight = sorted(w_gauss(p_d, pt_d))[0]
                 somaPeso += particle.weight
             else:
                 particle.weight = 0
