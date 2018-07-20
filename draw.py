@@ -11,7 +11,8 @@ from resample import Resample
 
 def gaussian_kernel(x, sigma):
     # http://www.stat.wisc.edu/~mchung/teaching/MIA/reading/diffusion.gaussian.kernel.pdf.pdf
-    g = (math.e ** -(x ** 2 / (2 * sigma **2))) * (1 / math.sqrt(math.pi * 2) * sigma)
+    # g = (math.e ** -(x ** 2 / (2 * sigma **2))) * (1 / math.sqrt(math.pi * 2) * sigma)
+    g = (math.e ** -(x ** 2 / (2 * sigma **2)))
     return g
 
 def meanEstimative(particles):
@@ -32,15 +33,15 @@ def meanEstimative(particles):
         return Particle((m_x, m_y),(255,255,0), 10), m_count > config.PARTICLE_COUNT * 0.95
 
 class Draw:
-    def __init__(self):
+    def __init__(self, fload, fsave):
         pygame.display.set_caption("Particle Filter Demo")
         pygame.font.init() # you have to call this at the start, 
                    # if you want to use this module.
+        self.load_file = fload
+        self.save_file = fsave
         self.font = pygame.font.SysFont('Arial', 30)
         self.help = False
         self.set_conf = False
-        self.path = False
-        self.point_list = []
         self.window = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
         self.screen = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
@@ -62,10 +63,11 @@ class Draw:
     def reset(self, p=1):
         if(p):
             #self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
-            self.person = Particle(config.START_POS, (0, 255, 0), 10)            
-            self.person.target = 0
-            self.path = False
-        self.conf = False
+            self.person = Particle(config.START_POS, (0, 255, 0), 10)     
+            self.point_list = [] if not config.LOAD else load_movement(self.load_file)       
+            self.person.target = False if self.point_list == [] else True
+            self.path = False if self.point_list == [] else True
+            self.set_conf = False if self.point_list == [] else True
         self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
         self.mparticle = [Particle(self.room.randomFreePos(), config.COLOR_MPARTICLE, 10)]
 
@@ -124,7 +126,7 @@ class Draw:
         for particle in self.particles:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
                 pt_d = Noise.add_noise(2, particle.read_sensor(self.room))
-                #particle.weight = sorted(w_gauss(p_d, pt_d))[0]
+                #particle.weight = sorted(gaussian_kernel(errors))[0]
                 errors = p_d - pt_d
                 weights = gaussian_kernel(errors, .9)
                 genes.append(weights)
@@ -177,17 +179,39 @@ class Draw:
                     dest = (pos[0]//config.BLOCK_WIDTH, pos[1]//config.BLOCK_HEIGHT)
                     source = (self.person.pos[0]//config.BLOCK_WIDTH, self.person.pos[1]//config.BLOCK_HEIGHT)
                     self.point_list = self.room.astar((source[1],source[0]), (dest[1],dest[0]))
-                    self.person.target = 1
+                    if(config.SAVE and self.point_list != []):
+                        save_movement(self.point_list, self.save_file)
+                    self.person.target = True
                     self.path = True
             if self.playing == config.PLAYING:
                 self.update()
                 self.draw()
             pygame.display.update()
 
-def main():
+def main(fload, fsave):
     pygame.init()
-    Draw().play()
+    Draw(fload, fsave).play()
     pygame.quit()
 
+import json
+
+def save_movement(point_list, filename):
+    with open(filename, 'w') as f:
+        json.dump(point_list, f)
+
+def load_movement(filename):
+    with open(filename) as f:
+        x = json.load(f)
+    return x
+
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s","--save", help="Saves current movement list",type=str)
+    parser.add_argument("-l","--load", help="Loads to current movement list",type=str)
+    args = parser.parse_args()
+    if args.save is not None:
+        config.SAVE = True
+    if args.load is not None:
+        config.LOAD = True
+    main(args.load, args.save)

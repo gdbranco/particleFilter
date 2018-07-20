@@ -115,13 +115,13 @@ class Particle(object):
         #self.direction = math.degrees(math.atan(self.acc[1]/self.acc[0]))
         #self.direction = self.direction + 180 if self.direction < 0 else self.direction
         if(len(target_list) > 1):
-            if(self.target is not None):
+            if(self.target):
                 target = target_list[self.target]
                 target_vector = target - self.pos
                 if(target_vector.length() < 2):
                     self.target += 1
                     if(self.target == len(target_list)):
-                        self.target = None
+                        self.target = False
                 move_vector = target_vector.normalize()
                 self.pos = self.pos + move_vector
                 return move_vector
