@@ -20,7 +20,7 @@ class Particle(object):
         self.acc = Vector2D(random.uniform(0, 1), random.uniform(0, 1))
         self.acc *= config.MAX_ACC
         self.acc.rotate_ip(self.direction)
-        self.weight = random.uniform(0, 1)
+        self.weight = weight if weight != 1 else random.uniform(0,1)
         self.color = color
         self.target = 0
         if(color is None):
@@ -114,6 +114,7 @@ class Particle(object):
     def update(self, room, target_list):
         #self.direction = math.degrees(math.atan(self.acc[1]/self.acc[0]))
         #self.direction = self.direction + 180 if self.direction < 0 else self.direction
+        move_vector = None
         if(len(target_list) > 1):
             if(self.target):
                 target = target_list[self.target]
@@ -124,7 +125,7 @@ class Particle(object):
                         self.target = False
                 move_vector = target_vector.normalize()
                 self.pos = self.pos + move_vector
-                return move_vector
+        return move_vector, self.target
                 
     def follow(self, move_vector):
         if(move_vector is not None):

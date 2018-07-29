@@ -1,8 +1,7 @@
 import numpy as np
 class Resample(object):
-    def __init__(self, state, norm):
-        self.state = np.asarray(state)
-        self.state = self.state / norm if norm else self.state
+    def __init__(self, state):
+        self.state = state
         self.cumsum = self.state.cumsum()
         self.cumsum[-1] = 1 # garantir que a soma termina em 1
 

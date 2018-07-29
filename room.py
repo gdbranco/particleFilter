@@ -16,7 +16,7 @@ class Room(object):
         self.pattern = pattern
         config.BLOCK_WIDTH = round(config.SCREEN_WIDTH / self.size[1])
         config.BLOCK_HEIGHT = round(config.SCREEN_HEIGHT / self.size[0])
-        config.START_POS = (14*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2,0 * config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2)  
+        config.START_POS = (14*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2,0 * config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2)
         self.beacons = []
         self.walls = []
         for i in range(self.size[1]):

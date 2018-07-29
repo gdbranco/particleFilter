@@ -1,5 +1,7 @@
 import pygame
 import math
+import numpy as np
+import json
 
 # My stuff
 import config
@@ -62,9 +64,10 @@ class Draw:
     
     def reset(self, p=1):
         if(p):
-            #self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)
-            self.person = Particle(config.START_POS, (0, 255, 0), 10)     
-            self.point_list = [] if not config.LOAD else load_movement(self.load_file)       
+            #self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)    
+            self.point_list = [] if not config.LOAD else load_movement(self.load_file)
+            print(config.START_POS)
+            self.person = Particle(config.START_POS, (0, 255, 0), 10)
             self.person.target = False if self.point_list == [] else True
             self.path = False if self.point_list == [] else True
             self.set_conf = False if self.point_list == [] else True
@@ -122,7 +125,6 @@ class Draw:
     def update(self):
         genes = []
         p_d = self.person.read_sensor(self.room)
-        somaPeso = 0
         for particle in self.particles:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
                 pt_d = Noise.add_noise(2, particle.read_sensor(self.room))
@@ -131,7 +133,6 @@ class Draw:
                 weights = gaussian_kernel(errors, .9)
                 genes.append(weights)
                 particle.weight = weights.mean()
-                somaPeso += particle.weight
             else:
                 particle.weight = 0
                 genes.append([999, 999, 999])
@@ -140,18 +141,24 @@ class Draw:
         # RESAMPLE STUFF
         new_particles = []
         pesos = [particle.weight for particle in self.particles]
-        dist = Resample(pesos, somaPeso)
+        pesos = np.asarray(pesos)
+        pesos /= pesos.sum()
+        dist = Resample(pesos)
         indices = dist.pick(config.RESAMPLE[config.RESAMPLE_INDEX])
+        # Normalizing for better weight visualization
+        pesos = (pesos - pesos.min()) / (pesos.max() - pesos.min())
         # CROSSOVER STUFF
         #print(genes)
         #print(pesos)
         # MUTATE STUFF
         for i in indices:
-            new_particles.append(Particle(self.particles[i].pos, noise=True))
+            new_particles.append(Particle(self.particles[i].pos, weight=pesos[i], noise=True))
         self.particles = new_particles
         # UPDATE STUFF
         self.mparticle, self.conf = meanEstimative(self.particles)
-        move_vector = self.person.update(self.room, self.point_list)
+        move_vector, keep_alive = self.person.update(self.room, self.point_list)
+        if(not keep_alive and config.LOAD):
+            exit()
         for p in self.particles:
            p.follow(move_vector)
 
@@ -193,8 +200,6 @@ def main(fload, fsave):
     Draw(fload, fsave).play()
     pygame.quit()
 
-import json
-
 def save_movement(point_list, filename):
     with open(filename, 'w') as f:
         json.dump(point_list, f)
@@ -202,6 +207,9 @@ def save_movement(point_list, filename):
 def load_movement(filename):
     with open(filename) as f:
         x = json.load(f)
+    if(config.REVERSE_PATH):
+        x = list(reversed(x))
+    x += list(reversed(x))[1:]
     return x
 
 if __name__ == "__main__":
@@ -209,9 +217,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--save", help="Saves current movement list",type=str)
     parser.add_argument("-l","--load", help="Loads to current movement list",type=str)
+    parser.add_argument("-pa","--particle_amount", help="Amount of particles in each scenario", type=int)
+    #parser.add_argument("-rv","--reverse", help="Reverse path in scenario", action="store_true")
     args = parser.parse_args()
     if args.save is not None:
         config.SAVE = True
     if args.load is not None:
         config.LOAD = True
+    # if args.reverse:
+    #     config.REVERSED_PATH = True
     main(args.load, args.save)
