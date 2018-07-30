@@ -66,7 +66,6 @@ class Draw:
         if(p):
             #self.person = Particle(self.room.randomFreePos(), (0, 255, 0), 10)    
             self.point_list = [] if not config.LOAD else load_movement(self.load_file)
-            print(config.START_POS)
             self.person = Particle(config.START_POS, (0, 255, 0), 10)
             self.person.target = False if self.point_list == [] else True
             self.path = False if self.point_list == [] else True
@@ -142,8 +141,8 @@ class Draw:
         new_particles = []
         pesos = [particle.weight for particle in self.particles]
         pesos = np.asarray(pesos)
-        pesos /= pesos.sum()
-        dist = Resample(pesos)
+        norm_pesos = pesos / pesos.sum()
+        dist = Resample(norm_pesos)
         indices = dist.pick(config.RESAMPLE[config.RESAMPLE_INDEX])
         # Normalizing for better weight visualization
         pesos = (pesos - pesos.min()) / (pesos.max() - pesos.min())
