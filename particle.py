@@ -11,15 +11,10 @@ class Particle(object):
         posx = pos[0]
         posy = pos[1]
         if noise:
-            posx = Noise.add_noise(5, pos[0])
-            posy = Noise.add_noise(5, pos[1])
+            posx = Noise.add_noise(random.randint(0, 10), pos[0])
+            posy = Noise.add_noise(random.randint(0, 19), pos[1])
         self.pos = Vector2D((posx,posy))
         self.vel = Vector2D(0,0)
-        self.direction = random.uniform(0, 360)
-        #self.acc = Vector2D(math.cos(math.radians(self.direction)), math.sin(math.radians(self.direction)))
-        self.acc = Vector2D(random.uniform(0, 1), random.uniform(0, 1))
-        self.acc *= config.MAX_ACC
-        self.acc.rotate_ip(self.direction)
         self.weight = weight if weight != 1 else random.uniform(0,1)
         self.color = color
         self.target = 0
@@ -30,11 +25,11 @@ class Particle(object):
     def __str__(self):
         return "({}, {}) - {}".format(self.pos[0],self.pos[1],self.weight)
 
-    def read_sensor(self, room):
-        return room.d2Beacons(self.pos)
+    def read_sensor(self, room, noise):
+        return room.d2Beacons(self.pos, noise)
 
     def w2color(self, weight):
-        return (int(weight*255), 0, int((1-weight)*255))
+        return (int(weight*255), 0, int((1 - weight)*255))
 
     def getRect(self):
         return pygame.Rect(self.pos[0]-self.radius, self.pos[1]-self.radius, self.radius*2, self.radius*2)

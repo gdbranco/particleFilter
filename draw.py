@@ -13,8 +13,8 @@ from resample import Resample
 
 def gaussian_kernel(x, sigma):
     # http://www.stat.wisc.edu/~mchung/teaching/MIA/reading/diffusion.gaussian.kernel.pdf.pdf
-    # g = (math.e ** -(x ** 2 / (2 * sigma **2))) * (1 / math.sqrt(math.pi * 2) * sigma)
-    g = (math.e ** -(x ** 2 / (2 * sigma **2)))
+    g = (math.e ** -(x ** 2 / (2 * sigma **2))) * (1 / math.sqrt(math.pi * 2) * sigma)
+    # g = (math.e ** -(x ** 2 / (2 * sigma **2)))
     return g
 
 def meanEstimative(particles):
@@ -33,6 +33,32 @@ def meanEstimative(particles):
             if math.hypot(p.pos[0]-m_x,p.pos[1]-m_y) < config.MIN_DIST:
                 m_count += 1
         return Particle((m_x, m_y),(255,255,0), 10), m_count > config.PARTICLE_COUNT * 0.95
+
+#  public static double[] trilaterar(double[] p1, double[] p2, double[] p3, double d1, double d2, double d3)
+#     {
+#         double[] posfinal = new double[2];
+#         //Vetor unidade na direcao p1 a p2
+#         double p2p1Distance = Math.pow(Math.pow(p2[0]-p1[0],2) + Math.pow(p2[1]-p1[1],2),0.5);
+#         double exx = (p2[0]-p1[0])/p2p1Distance;
+#         double exy =  (p2[1]-p1[1])/p2p1Distance;
+#         //Magnitude de x
+#         double i = exx*(p3[0]-p1[0])+exy*(p3[1]-p1[1]);
+#         //vetor unidade direcao y
+#         double iexx = p3[0]-p1[0]-i*exx;
+#         double iexy = p3[1]-p1[1]-i*exy;
+#         double eyx = (iexx)/Math.pow(Math.pow(iexx,2)+Math.pow(iexy,2),0.5);
+#         double eyy = (iexy)/Math.pow(Math.pow(iexx,2)+Math.pow(iexy,2),0.5);
+#         //Magnitude de y
+#         double j = eyx*(p3[0]-p1[0])+eyy*(p3[1]-p1[1]);
+#         //coord
+#         double x = (Math.pow(d1,2) - Math.pow(d2,2) + Math.pow(p2p1Distance,2))/(2*p2p1Distance);
+#         double y = (Math.pow(d1,2) - Math.pow(d3,2) + Math.pow(i,2) + Math.pow(j,2))/(2*j) - i*x/j;
+#         double fx = p1[0] + x*exx + y*eyx;
+#         double fy = p1[1] + x*exy + y*eyy;
+#         posfinal[0] = fx;
+#         posfinal[1] = fy;
+#         return posfinal;
+#     }
 
 class Draw:
     def __init__(self, fload, fsave, flog):
@@ -109,7 +135,7 @@ class Draw:
             particle.draw(self.screen)
         self.person.draw(self.screen)
         if self.conf or self.set_conf:
-            self.mparticle.draw(self.screen)
+           self.mparticle.draw(self.screen)
 
     def draw_path(self):
         if(len(self.point_list) > 1):
@@ -129,37 +155,38 @@ class Draw:
         self.log_file.write(f"{pos[0]}, {pos[1]}, {estimative[0]}, {estimative[1]}, {error}\n")
 
     def update(self):
-        genes = []
-        p_d = self.person.read_sensor(self.room)
+        p_d = self.person.read_sensor(self.room, noise=True)
         for particle in self.particles:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
-                pt_d = Noise.add_noise(2, particle.read_sensor(self.room))
-                #particle.weight = sorted(gaussian_kernel(errors))[0]
-                errors = p_d - pt_d
-                weights = gaussian_kernel(errors, .9)
-                genes.append(weights)
-                particle.weight = weights.mean()
+                pt_d = particle.read_sensor(self.room, noise=False)
+                errors = abs(p_d - pt_d)
+                particle.weight = gaussian_kernel(errors.mean(), 2.509)
             else:
                 particle.weight = 0
-                genes.append([999, 999, 999])
-            particle.color = particle.w2color(particle.weight)
         
         # RESAMPLE STUFF
         new_particles = []
-        pesos = [particle.weight for particle in self.particles]
-        pesos = np.asarray(pesos)
+        pesos = np.asarray([particle.weight for particle in self.particles])
         norm_pesos = pesos / pesos.sum()
         dist = Resample(norm_pesos)
         indices = dist.pick(config.RESAMPLE[config.RESAMPLE_INDEX])
-        # Normalizing for better weight visualization
-        pesos = (pesos - pesos.min()) / (pesos.max() - pesos.min())
         # CROSSOVER STUFF
         #print(genes)
         #print(pesos)
         # MUTATE STUFF
         for i in indices:
-            new_particles.append(Particle(self.particles[i].pos, weight=pesos[i], noise=True))
+            new = Particle(self.particles[i].pos, noise=True)
+            d = new.read_sensor(self.room, False)
+            errors = abs(p_d - d)
+            new.weight = gaussian_kernel(errors.mean(), 2.509)
+            new_particles.append(new)
         self.particles = new_particles
+        pesos = np.asarray([particle.weight for particle in self.particles])
+        norm_pesos = (pesos - pesos.min()) / (pesos.max() - pesos.min())
+        i = 0
+        for p in self.particles:
+            p.weight = norm_pesos[i]
+            i+=1
         # UPDATE STUFF
         self.mparticle, self.conf = meanEstimative(self.particles)
         move_vector, keep_alive = self.person.update(self.room, self.point_list)
