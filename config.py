@@ -21,4 +21,5 @@ MIN_DIST = 50
 START_POS = None
 LOAD = False
 SAVE = False
+LOG = False
 REVERSE_PATH = False

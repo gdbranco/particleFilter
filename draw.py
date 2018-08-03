@@ -35,12 +35,16 @@ def meanEstimative(particles):
         return Particle((m_x, m_y),(255,255,0), 10), m_count > config.PARTICLE_COUNT * 0.95
 
 class Draw:
-    def __init__(self, fload, fsave):
+    def __init__(self, fload, fsave, flog):
         pygame.display.set_caption("Particle Filter Demo")
         pygame.font.init() # you have to call this at the start, 
                    # if you want to use this module.
-        self.load_file = fload
-        self.save_file = fsave
+        if config.LOAD:
+            self.load_file = fload
+        if config.SAVE:
+            self.save_file = fsave
+        if config.LOG:
+            self.log_file = open(flog, 'w', newline='')
         self.font = pygame.font.SysFont('Arial', 30)
         self.help = False
         self.set_conf = False
@@ -93,12 +97,12 @@ class Draw:
     def draw_text(self, text, p):
         self.screen.blit(self.font.render(text, 1, config.TEXT_COLOR), p)
 
-    def draw_help(self):
+    def draw_help(self, pos, estimative, error):
         pygame.draw.rect(self.screen, config.COLOR_EMPTY, pygame.Rect(int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.70), 500, 200))
         self.draw_text("Resampling Method: {}".format(config.RESAMPLE[config.RESAMPLE_INDEX]), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.71)))
-        self.draw_text("Person: {}".format(self.person.pos), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.75)))
-        self.draw_text("Estimative: {}".format(self.mparticle.pos), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.79)))
-        self.draw_text("Error: {}".format(math.hypot(self.person.pos[0]-self.mparticle.pos[0], self.person.pos[1]-self.mparticle.pos[1])), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.83)))
+        self.draw_text("Person: {}".format(pos), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.75)))
+        self.draw_text("Estimative: {}".format(estimative), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.79)))
+        self.draw_text("Error: {}".format(error), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.83)))
 
     def draw_particles(self):
         for particle in self.particles:
@@ -117,9 +121,12 @@ class Draw:
         self.draw_particles()
         self.draw_grid()
         if(self.help):
-            self.draw_help()
+            self.draw_help(self.person.pos, self.mparticle.pos, math.hypot(self.person.pos[0]-self.mparticle.pos[0], self.person.pos[1]-self.mparticle.pos[1]))
         if(self.path):
             self.draw_path()
+
+    def log(self, pos, estimative, error):
+        self.log_file.write(f"{pos[0]}, {pos[1]}, {estimative[0]}, {estimative[1]}, {error}\n")
 
     def update(self):
         genes = []
@@ -157,6 +164,7 @@ class Draw:
         self.mparticle, self.conf = meanEstimative(self.particles)
         move_vector, keep_alive = self.person.update(self.room, self.point_list)
         if(not keep_alive and config.LOAD):
+            self.log_file.close()
             exit()
         for p in self.particles:
            p.follow(move_vector)
@@ -192,11 +200,13 @@ class Draw:
             if self.playing == config.PLAYING:
                 self.update()
                 self.draw()
+                if config.LOG:
+                    self.log(self.person.pos, self.mparticle.pos, math.hypot(self.person.pos[0]-self.mparticle.pos[0], self.person.pos[1]-self.mparticle.pos[1]))
             pygame.display.update()
 
-def main(fload, fsave):
+def main(fload, fsave, flog):
     pygame.init()
-    Draw(fload, fsave).play()
+    Draw(fload, fsave, flog).play()
     pygame.quit()
 
 def save_movement(point_list, filename):
@@ -216,6 +226,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--save", help="Saves current movement list",type=str)
     parser.add_argument("-l","--load", help="Loads to current movement list",type=str)
+    parser.add_argument("-log","--log",help="Logs statistics about current movement list", type=str)
     parser.add_argument("-pa","--particle_amount", help="Amount of particles in each scenario", type=int)
     #parser.add_argument("-rv","--reverse", help="Reverse path in scenario", action="store_true")
     args = parser.parse_args()
@@ -223,6 +234,8 @@ if __name__ == "__main__":
         config.SAVE = True
     if args.load is not None:
         config.LOAD = True
+    if args.log is not None:
+        config.LOG = True
     # if args.reverse:
     #     config.REVERSED_PATH = True
-    main(args.load, args.save)
+    main(args.load, args.save, args.log)
