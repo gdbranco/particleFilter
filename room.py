@@ -135,7 +135,7 @@ class Room(object):
                      #(pos[0]+1,pos[1]+1)] # SE
         distance = float("inf")
         closest = None
-        for i, n in enumerate(neighbors):
+        for n in enumerate(neighbors):
             if(not self.freePos((n[1], n[0]))):
                 continue
             d = abs(pos[0] - n[0]) - abs(pos[1] - n[1])

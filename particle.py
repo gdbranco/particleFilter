@@ -40,10 +40,8 @@ class Particle(object):
     def bounce_bounds(self, pos, room):
         if(pos[0]-self.radius <= 0 or pos[0]+self.radius >= room.size[1]*config.BLOCK_WIDTH):
             self.vel[0] *= -1
-            self.acc[0] *= -1
         elif(pos[1]-self.radius <= 0 or pos[1]+self.radius >= room.size[0]*config.BLOCK_HEIGHT):
             self.vel[1] *= -1
-            self.acc[1] *= -1
 
     def bounce_wall(self, ball, wall):
         # #base on https://gamedev.stackexchange.com/questions/61705/pygame-colliderect-but-how-do-they-
@@ -85,16 +83,12 @@ class Particle(object):
 
         if vbounce>0:
             self.vel[1] = abs(self.vel[1])
-            self.acc[1] = abs(self.acc[1])
         elif vbounce<0:
             self.vel[1] = -abs(self.vel[1])
-            self.acc[1] = -abs(self.acc[1])
         if hbounce>0:
             self.vel[0] = abs(self.vel[0])
-            self.acc[0] = abs(self.acc[0])
         elif hbounce<0:
             self.vel[0] = -abs(self.vel[0])
-            self.acc[0] = -abs(self.acc[0])
 
     def reflect(self, pos, room):
         #REFLECT OF BOUNDS OF SCREEN
