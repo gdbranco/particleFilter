@@ -10,7 +10,6 @@ from noise import Noise
 from particle import Particle
 from resample import Resample
 
-
 def gaussian_kernel(x, sigma):
     # http://www.stat.wisc.edu/~mchung/teaching/MIA/reading/diffusion.gaussian.kernel.pdf.pdf
     g = (math.e ** -(x ** 2 / (2 * sigma **2))) * (1 / math.sqrt(math.pi * 2) * sigma)
@@ -32,33 +31,29 @@ def meanEstimative(particles):
         for p in particles:
             if math.hypot(p.pos[0]-m_x,p.pos[1]-m_y) < config.MIN_DIST:
                 m_count += 1
-        return Particle((m_x, m_y),(255,255,0), 10), m_count > config.PARTICLE_COUNT * 0.95
+        return (m_x, m_y)
 
-#  public static double[] trilaterar(double[] p1, double[] p2, double[] p3, double d1, double d2, double d3)
-#     {
-#         double[] posfinal = new double[2];
-#         //Vetor unidade na direcao p1 a p2
-#         double p2p1Distance = Math.pow(Math.pow(p2[0]-p1[0],2) + Math.pow(p2[1]-p1[1],2),0.5);
-#         double exx = (p2[0]-p1[0])/p2p1Distance;
-#         double exy =  (p2[1]-p1[1])/p2p1Distance;
-#         //Magnitude de x
-#         double i = exx*(p3[0]-p1[0])+exy*(p3[1]-p1[1]);
-#         //vetor unidade direcao y
-#         double iexx = p3[0]-p1[0]-i*exx;
-#         double iexy = p3[1]-p1[1]-i*exy;
-#         double eyx = (iexx)/Math.pow(Math.pow(iexx,2)+Math.pow(iexy,2),0.5);
-#         double eyy = (iexy)/Math.pow(Math.pow(iexx,2)+Math.pow(iexy,2),0.5);
-#         //Magnitude de y
-#         double j = eyx*(p3[0]-p1[0])+eyy*(p3[1]-p1[1]);
-#         //coord
-#         double x = (Math.pow(d1,2) - Math.pow(d2,2) + Math.pow(p2p1Distance,2))/(2*p2p1Distance);
-#         double y = (Math.pow(d1,2) - Math.pow(d3,2) + Math.pow(i,2) + Math.pow(j,2))/(2*j) - i*x/j;
-#         double fx = p1[0] + x*exx + y*eyx;
-#         double fy = p1[1] + x*exy + y*eyy;
-#         posfinal[0] = fx;
-#         posfinal[1] = fy;
-#         return posfinal;
-#     }
+
+def trilaterar(p1, p2, p3, d1, d2, d3):
+    p2p1Distance = ((p2[0]-p1[0])**2 + (p2[1] - p1[1])**2)**(1/2)
+    exx = (p2[0]-p1[0])/p2p1Distance
+    exy = (p2[1]-p1[1])/p2p1Distance
+
+    i = exx*(p3[0]-p1[0]) + exy * (p3[1]-p1[1])
+    iexx = p3[0]-p1[0]-i*exx
+    iexy = p3[1]-p1[1]-i*exy
+    eyx = (iexx)/(iexx**2 + iexy**2)**(1/2)
+    eyy = (iexy)/(iexx**2 + iexy**2)**(1/2)
+
+    j = eyx*(p3[0]-p1[0])+eyy*(p3[1]-p1[1])
+
+    x = (d1**2 - d2**2 + p2p1Distance**2)/(2*p2p1Distance)
+    y = (d1**2 - d3**2 + i**2 + j**2)/(2*j) - i*x/j
+
+    fx = p1[0] + x*exx + y*eyx
+    fy = p1[1] + x*exy + y*eyy
+
+    return (fx, fy)
 
 class Draw:
     def __init__(self, fload, fsave, flog):
@@ -71,6 +66,7 @@ class Draw:
             self.save_file = fsave
         if config.LOG:
             self.log_file = open(flog, 'w', newline='')
+            self.log_file.write("x_sim, y_sim, e_x_sim, e_y_sim, error_sim, x_real, y_real, e_x_real, e_y_real, error_real\n")
         self.font = pygame.font.SysFont('Arial', 30)
         self.help = False
         self.set_conf = False
@@ -91,6 +87,8 @@ class Draw:
                                   (1,0,0,1,2,1,1,1,1,1,1,1,1,1,1,1),
                                   (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)))
         self.reset()
+        self.min_error = float('inf')
+        self.max_error = float('-inf')
     
     def reset(self, p=1):
         if(p):
@@ -101,7 +99,7 @@ class Draw:
             self.path = False if self.point_list == [] else True
             self.set_conf = False if self.point_list == [] else True
         self.particles = [Particle(self.room.randomFreePos()) for i in range(config.PARTICLE_COUNT)]
-        self.mparticle = [Particle(self.room.randomFreePos(), config.COLOR_MPARTICLE, 10)]
+        self.mparticle = Particle(self.room.randomFreePos(), config.COLOR_MPARTICLE, 10)
 
     def draw_grid(self):
         for x in range(0, config.SCREEN_WIDTH, config.BLOCK_WIDTH):
@@ -123,18 +121,23 @@ class Draw:
     def draw_text(self, text, p):
         self.screen.blit(self.font.render(text, 1, config.TEXT_COLOR), p)
 
-    def draw_help(self, pos, estimative, error):
+    def draw_help(self, pos, estimative):
+        error = math.hypot(pos[0]-estimative[0], pos[1]-estimative[1])
         pygame.draw.rect(self.screen, config.COLOR_EMPTY, pygame.Rect(int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.70), 500, 200))
-        self.draw_text("Resampling Method: {}".format(config.RESAMPLE[config.RESAMPLE_INDEX]), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.71)))
-        self.draw_text("Person: {}".format(pos), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.75)))
-        self.draw_text("Estimative: {}".format(estimative), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.79)))
-        self.draw_text("Error: {}".format(error), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.83)))
+        if config.POSITIONING_METHODS_INDEX in [config.PF, config.EPF]:
+            self.draw_text("Resampling Method: {}".format(config.RESAMPLE[config.RESAMPLE_INDEX]), (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.71)))
+        self.draw_text(f"Person: {pos}", (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.75)))
+        self.draw_text(f"Estimative: {estimative}", (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.79)))
+        self.draw_text(f"Error: {error}", (int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.83)))
+        self.draw_text(f"Min Error: {self.min_error}",(int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.87)))
+        self.draw_text(f'Max Error: {self.max_error}',(int(config.SCREEN_WIDTH*0.6), int(config.SCREEN_HEIGHT*0.91)))
 
     def draw_particles(self):
-        for particle in self.particles:
-            particle.draw(self.screen)
+        if config.POSITIONING_METHODS_INDEX in [config.PF, config.EPF]:
+            for particle in self.particles:
+                particle.draw(self.screen)
         self.person.draw(self.screen)
-        if self.conf or self.set_conf:
+        if self.set_conf:
            self.mparticle.draw(self.screen)
 
     def draw_path(self):
@@ -147,15 +150,48 @@ class Draw:
         self.draw_particles()
         self.draw_grid()
         if(self.help):
-            self.draw_help(self.person.pos, self.mparticle.pos, math.hypot(self.person.pos[0]-self.mparticle.pos[0], self.person.pos[1]-self.mparticle.pos[1]))
+            self.draw_help(self.person.pos, self.mparticle.pos)
         if(self.path):
             self.draw_path()
 
-    def log(self, pos, estimative, error):
-        self.log_file.write(f"{pos[0]}, {pos[1]}, {estimative[0]}, {estimative[1]}, {error}\n")
+    def log(self, pos, estimative):
+        error_pixels = math.hypot(pos[0]-estimative[0], pos[1]-estimative[1])
+        pos_converted = ((pos[0]*9.3)/1280, (pos[1]*6.82)/720)
+        estimative_converted = ((estimative[0]*9.3)/1280, (estimative[1]*6.82)/720)
+        error_converted = math.hypot(pos_converted[0]-estimative_converted[0], pos_converted[1]-estimative_converted[1])
+        self.log_file.write(f"{pos[0]}, {pos[1]}, {estimative[0]}, {estimative[1]}, {error_pixels}, {pos_converted[0]}, {pos_converted[1]}, {estimative_converted[0]}, {estimative_converted[1]}, {error_converted}\n")
 
     def update(self):
+        # UPDATE STUFF
+        move_vector, keep_alive = self.person.update(self.room, self.point_list)
         p_d = self.person.read_sensor(self.room, noise=True)
+        if config.POSITIONING_METHODS_INDEX == config.PF:
+            self.update_particleFilter(p_d)
+            for p in self.particles:
+                p.follow(move_vector)
+            self.mparticle.pos = meanEstimative(self.particles)
+        elif config.POSITIONING_METHODS_INDEX == config.EPF:
+            self.update_evoParticleFilter(p_d)
+            self.mparticle = meanEstimative(self.particles)
+        else:
+            self.update_trilateration(p_d)
+        if(not keep_alive and config.LOAD):
+            self.log_file.close()
+            exit()
+        error = math.hypot(self.person.pos[0]-self.mparticle.pos[0], self.person.pos[1]-self.mparticle.pos[1])
+        if(self.max_error < error):
+            self.max_error = error
+        if(self.min_error > error):
+            self.min_error = error
+
+    def update_evoParticleFilter(self, p_d):
+        pass
+
+    def update_trilateration(self, p_d):
+        beacons = self.room.pixel_beacons
+        self.mparticle.pos = trilaterar(beacons[0],beacons[1],beacons[2], p_d[0], p_d[1],p_d[2])
+
+    def update_particleFilter(self, p_d):
         for particle in self.particles:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
                 pt_d = particle.read_sensor(self.room, noise=False)
@@ -167,18 +203,19 @@ class Draw:
         # RESAMPLE STUFF
         new_particles = []
         pesos = np.asarray([particle.weight for particle in self.particles])
-        norm_pesos = pesos / pesos.sum()
+        norm_pesos = (pesos - pesos.min()) / (pesos.max() - pesos.min())
         dist = Resample(norm_pesos)
         indices = dist.pick(config.RESAMPLE[config.RESAMPLE_INDEX])
-        # CROSSOVER STUFF
-        #print(genes)
-        #print(pesos)
+
         # MUTATE STUFF
         for i in indices:
             new = Particle(self.particles[i].pos, noise=True)
-            d = new.read_sensor(self.room, False)
-            errors = abs(p_d - d)
-            new.weight = gaussian_kernel(errors.mean(), 2.509)
+            if(self.room.freePos((new.pos[0]//config.BLOCK_WIDTH,new.pos[1]//config.BLOCK_HEIGHT))):
+                d = new.read_sensor(self.room, False)
+                errors = abs(p_d - d)
+                new.weight = gaussian_kernel(errors.mean(), 2.509)
+            else:
+                new.weight = 0
             new_particles.append(new)
         self.particles = new_particles
         pesos = np.asarray([particle.weight for particle in self.particles])
@@ -186,15 +223,8 @@ class Draw:
         i = 0
         for p in self.particles:
             p.weight = norm_pesos[i]
+            p.color = p.w2color(p.weight)
             i+=1
-        # UPDATE STUFF
-        self.mparticle, self.conf = meanEstimative(self.particles)
-        move_vector, keep_alive = self.person.update(self.room, self.point_list)
-        if(not keep_alive and config.LOAD):
-            self.log_file.close()
-            exit()
-        for p in self.particles:
-           p.follow(move_vector)
 
     def handle_input(self, e):
         if(e.key == pygame.K_r): # Restart Everyhing
@@ -228,8 +258,9 @@ class Draw:
                 self.update()
                 self.draw()
                 if config.LOG:
-                    self.log(self.person.pos, self.mparticle.pos, math.hypot(self.person.pos[0]-self.mparticle.pos[0], self.person.pos[1]-self.mparticle.pos[1]))
+                    self.log(self.person.pos, self.mparticle.pos)
             pygame.display.update()
+            self.clock.tick(config.FPS)
 
 def main(fload, fsave, flog):
     pygame.init()
@@ -254,6 +285,7 @@ if __name__ == "__main__":
     parser.add_argument("-s","--save", help="Saves current movement list",type=str)
     parser.add_argument("-l","--load", help="Loads to current movement list",type=str)
     parser.add_argument("-log","--log",help="Logs statistics about current movement list", type=str)
+    parser.add_argument("-pm","--pmethod",help="Select positioning method", type=str)
     parser.add_argument("-pa","--particle_amount", help="Amount of particles in each scenario", type=int)
     #parser.add_argument("-rv","--reverse", help="Reverse path in scenario", action="store_true")
     args = parser.parse_args()
@@ -263,6 +295,13 @@ if __name__ == "__main__":
         config.LOAD = True
     if args.log is not None:
         config.LOG = True
+    if args.pmethod is not None:
+        if args.pmethod == config.POSITIONING_METHODS[config.PF]:
+            config.POSITIONING_METHODS_INDEX = config.PF
+        elif args.pmethod == config.POSITIONING_METHODS[config.EPF]:
+            config.POSITIONING_METHODS_INDEX = config.EPF
+        else:
+            config.POSITIONING_METHODS_INDEX = config.TRI
     # if args.reverse:
     #     config.REVERSED_PATH = True
     main(args.load, args.save, args.log)

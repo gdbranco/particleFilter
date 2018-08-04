@@ -11,8 +11,8 @@ class Particle(object):
         posx = pos[0]
         posy = pos[1]
         if noise:
-            posx = Noise.add_noise(random.randint(0, 10), pos[0])
-            posy = Noise.add_noise(random.randint(0, 19), pos[1])
+            posx = Noise.add_noise(random.randint(0, 26), pos[0])
+            posy = Noise.add_noise(random.randint(0, 26), pos[1])
         self.pos = Vector2D((posx,posy))
         self.vel = Vector2D(0,0)
         self.weight = weight if weight != 1 else random.uniform(0,1)
@@ -113,7 +113,7 @@ class Particle(object):
                     if(self.target == len(target_list)):
                         self.target = False
                 move_vector = target_vector.normalize()
-                self.pos = self.pos + move_vector
+                self.pos += move_vector
         return move_vector, self.target
                 
     def follow(self, move_vector):

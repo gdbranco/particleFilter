@@ -7,7 +7,6 @@ class Resample(object):
 
     def pick(self, type="multinomial"):
         if(type=="multinomial"):
-            self.state = sorted(self.state)
             indices = np.searchsorted(self.cumsum, np.random.random(len(self.state)))
         elif(type=="systematic"):
             N = len(self.state)

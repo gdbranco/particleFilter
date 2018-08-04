@@ -18,11 +18,13 @@ class Room(object):
         config.BLOCK_HEIGHT = round(config.SCREEN_HEIGHT / self.size[0])
         config.START_POS = (14*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2,0 * config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2)
         self.beacons = []
+        self.pixel_beacons = []
         self.walls = []
         for i in range(self.size[1]):
             for j in range(self.size[0]):
                 if(self.pattern[j][i]==2):
                     self.beacons.append((i,j))
+                    self.pixel_beacons.append(((i*config.BLOCK_WIDTH + config.BLOCK_WIDTH/2), (j*config.BLOCK_HEIGHT + config.BLOCK_HEIGHT/2)))
                 if(self.pattern[j][i]!=0):
                     self.walls.append((i,j))
 
@@ -47,7 +49,7 @@ class Room(object):
         for beacon in self.beacons:
             d = math.hypot(beacon[0]*config.BLOCK_WIDTH-pos[0], beacon[1]*config.BLOCK_HEIGHT-pos[1])
             if noise:
-                distance.append(Noise.add_noise(19, d))
+                distance.append(Noise.add_noise(26, d))
             else:
                 distance.append(d)
         return np.array(distance)
