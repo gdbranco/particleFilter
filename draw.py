@@ -9,6 +9,7 @@ from room import Room
 from noise import Noise
 from particle import Particle
 from resample import Resample
+import random
 
 def gaussian_kernel(x, sigma):
     # http://www.stat.wisc.edu/~mchung/teaching/MIA/reading/diffusion.gaussian.kernel.pdf.pdf
@@ -26,11 +27,7 @@ def meanEstimative(particles):
             return Particle((-1, -1), (0,0,0)), False
         m_x /= m_count
         m_y /= m_count
-        
-        m_count = 0
-        for p in particles:
-            if math.hypot(p.pos[0]-m_x,p.pos[1]-m_y) < config.MIN_DIST:
-                m_count += 1
+
         return (m_x, m_y)
 
 
@@ -172,7 +169,9 @@ class Draw:
             self.mparticle.pos = meanEstimative(self.particles)
         elif config.POSITIONING_METHODS_INDEX == config.EPF:
             self.update_evoParticleFilter(p_d)
-            self.mparticle = meanEstimative(self.particles)
+            for p in self.particles:
+                p.follow(move_vector)
+            self.mparticle.pos = meanEstimative(self.particles)
         else:
             self.update_trilateration(p_d)
         if(not keep_alive and config.LOAD):
@@ -184,9 +183,6 @@ class Draw:
         if(self.min_error > error):
             self.min_error = error
 
-    def update_evoParticleFilter(self, p_d):
-        pass
-
     def update_trilateration(self, p_d):
         beacons = self.room.pixel_beacons
         self.mparticle.pos = trilaterar(beacons[0],beacons[1],beacons[2], p_d[0], p_d[1],p_d[2])
@@ -196,7 +192,7 @@ class Draw:
             if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH,particle.pos[1]//config.BLOCK_HEIGHT))):
                 pt_d = particle.read_sensor(self.room, noise=False)
                 errors = abs(p_d - pt_d)
-                particle.weight = gaussian_kernel(errors.mean(), 2.509)
+                particle.weight = gaussian_kernel(errors.mean(), config.GAUSSIAN_SIGMA)
             else:
                 particle.weight = 0
         
@@ -213,18 +209,51 @@ class Draw:
             if(self.room.freePos((new.pos[0]//config.BLOCK_WIDTH,new.pos[1]//config.BLOCK_HEIGHT))):
                 d = new.read_sensor(self.room, False)
                 errors = abs(p_d - d)
-                new.weight = gaussian_kernel(errors.mean(), 2.509)
+                new.weight = gaussian_kernel(errors.mean(), config.GAUSSIAN_SIGMA)
             else:
                 new.weight = 0
             new_particles.append(new)
         self.particles = new_particles
-        pesos = np.asarray([particle.weight for particle in self.particles])
-        norm_pesos = (pesos - pesos.min()) / (pesos.max() - pesos.min())
-        i = 0
         for p in self.particles:
-            p.weight = norm_pesos[i]
             p.color = p.w2color(p.weight)
-            i+=1
+
+    def update_evoParticleFilter(self, p_d):
+        new_particles = []
+        for k in range(config.NUM_GENERATIONS):
+            # SELECTION
+            for particle in self.particles:
+                if(self.room.freePos((particle.pos[0]//config.BLOCK_WIDTH, particle.pos[1]//config.BLOCK_HEIGHT))):
+                    pt_d = particle.read_sensor(self.room, noise=False)
+                    errors = abs(p_d - pt_d)
+                    particle.weight = gaussian_kernel(errors.mean(), config.GAUSSIAN_SIGMA)
+                else:
+                    particle.weight = 0
+
+            pesos = np.asarray([particle.weight for particle in self.particles])
+            norm_pesos = (pesos - pesos.min()) / (pesos.max() - pesos.min())
+            dist = Resample(norm_pesos)
+            indices = dist.pick(config.RESAMPLE[config.RESAMPLE_INDEX])
+
+            # CROSSOVER + MUTATION
+            new_particles = []
+            i=0
+            j=len(self.particles)-1
+            while i<j:
+                mutation_prob1 = random.randint(0,10)
+                mutation_prob2 = random.randint(0,10)
+                child1 = Particle((self.particles[indices[i]].pos[0],self.particles[indices[j]].pos[1]), noise=False if mutation_prob1 > 1 else True)
+                child2 = Particle((self.particles[indices[j]].pos[0],self.particles[indices[i]].pos[1]), noise=False if mutation_prob2 > 1 else True)
+                i+=1
+                j-=1
+                new_particles.append(child1)
+                new_particles.append(child2)
+            self.particles = new_particles
+
+        for p in self.particles:
+            pt_d = p.read_sensor(self.room, noise=False)
+            errors = abs(p_d - pt_d)
+            p.weight = gaussian_kernel(errors.mean(), config.GAUSSIAN_SIGMA)
+            p.color = p.w2color(p.weight)
 
     def handle_input(self, e):
         if(e.key == pygame.K_r): # Restart Everyhing
