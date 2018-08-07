@@ -1,0 +1,22 @@
+set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5 ps 1.5   # --- blue
+set style line 2 lc rgb '#dd181f' lt 1 lw 2 pt 7 ps 1.5   # --- red
+set style line 3 lc rgb '#00ff00' lt 1 lw 2 pt 9 ps 1.5   # --- green
+set style line 4 lc rgb '#ff7f00' lt 1 lw 2 pt 13 ps 1.5   # --- orange
+
+set key font ",11"  #Tamanho da fonte da legenda
+set tics font ",12" #Tamanho dos valores dos eixos
+set key reverse above Left width 1
+
+set xlabel "Leituras" font ",12"
+set ylabel "RSSI (dB)" font ",12"
+set yrange [-62:-52]
+set xrange [0:26]
+
+plot \
+"./grafico_rssi_1m" using ($0+1):1 title "Sem Filtro" with linespoint ls 1, \
+'' using ($0+1):2 title "Kalman (Q=4.0 R=0.1)" with linespoint ls 2, \
+'' using ($0+1):3 title "Kalman (Q=1.5 R=0.7)" with linespoint ls 3, \
+'' using ($0+1):4 title "Kalman (Q=1.5 R=0.3)" with linespoint ls 4;
+
+
+pause -1 "Hit any key to continue"

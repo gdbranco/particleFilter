@@ -1,0 +1,26 @@
+set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5 ps 1.5   # --- blue
+set style line 2 lc rgb '#dd181f' lt 1 lw 2 pt 7 ps 1.5   # --- red
+set style line 3 lc rgb '#00ff00' lt 1 lw 2 pt 9 ps 1.5   # --- green
+set style line 4 lc rgb '#ff7f00' lt 1 lw 2 pt 13 ps 1.5   # --- orange
+
+set key font ",11"  #Tamanho da fonte da legenda
+set tics font ",12" #Tamanho dos valores dos eixos
+set key reverse above Left width 1
+
+set xlabel "Distância (m)" font ",12"
+set ylabel "RSSI (dB)" font ",12"
+set yrange [:-50]
+set xrange [0.5:6.5]
+unset key
+
+plot \
+"Desktop/gnuplot/6m_compare" using (1,1):1, \
+'' using (2,2):2 , \
+'' using (3,3):3 , \
+'' using (4,4):4 , \
+'' using (5,5):5 , \
+'' using (6,6):6 , \
+"Desktop/gnuplot/linha_media" using 1:2 with line;
+
+
+pause -1 "Hit any key to continue"

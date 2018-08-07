@@ -1,0 +1,21 @@
+#Gera o grafico com os comparativos das distancias
+
+set key font ",11"  #Tamanho da fonte da legenda
+set tics font ",12" #Tamanho dos valores dos eixos
+
+
+set key reverse above Left width 1;
+set decimal ","
+set xlabel "Coordenada X (m)" font ",12"
+set yrange [0:4]
+set ylabel "Coordenada Y (m)" font ",12"
+
+
+plot \
+"./trilateracao" using 1:2 title "Estimado" pointsize 2  linewidth 5 ,\
+'' using 3:4 title "Real" pointsize 2  linewidth 5 , \
+'' using 1:2:(sprintf("(%.2f, %.2f)", $1, $2)) with labels notitle  offset char 4,1 , \
+'' using 3:4:(sprintf("(%.2f, %.2f)", $3, $4)) with labels notitle offset char 4,1 ;
+
+
+pause -1 "Hit any key to continue"

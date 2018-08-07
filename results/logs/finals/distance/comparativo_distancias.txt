@@ -1,0 +1,25 @@
+#Gera o grafico com os comparativos das distancias
+
+set key font ",11"  #Tamanho da fonte da legenda
+set tics font ",12" #Tamanho dos valores dos eixos
+
+
+set key reverse above Left width 1
+set style data histogram
+set style histogram cluster gap 1
+set style fill pattern border
+set boxwidth 0.9
+
+set xlabel "Distância Real (m)" font ",12"
+set xrange [0:6]
+set ylabel "Distância Estimada (m)" font ",12"
+
+
+plot \
+"./comparativo_distancias_Ion" using 2 title "Sem Filtro" ,\
+'' using 3 title "Média Móvel", \
+'' using 4 title "Kalman", \
+'' using 5:xticlabels(1) title "Filtro Duplo";
+
+
+pause -1 "Hit any key to continue"
