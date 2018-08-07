@@ -144,12 +144,12 @@ class Draw:
     def draw(self):
         self.screen.fill(config.COLOR_BG)
         self.draw_room()
-        self.draw_particles()
-        self.draw_grid()
-        if(self.help):
-            self.draw_help(self.person.pos, self.mparticle.pos)
-        if(self.path):
-            self.draw_path()
+        #self.draw_particles()
+        #self.draw_grid()
+        #if(self.help):
+        #    self.draw_help(self.person.pos, self.mparticle.pos)
+        #if(self.path):
+        #    self.draw_path()
 
     def log(self, pos, estimative):
         error_pixels = math.hypot(pos[0]-estimative[0], pos[1]-estimative[1])
