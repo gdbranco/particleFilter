@@ -248,7 +248,6 @@ class Draw:
                 new_particles.append(child1)
                 new_particles.append(child2)
             self.particles = new_particles
-
         for p in self.particles:
             pt_d = p.read_sensor(self.room, noise=False)
             errors = abs(p_d - pt_d)
