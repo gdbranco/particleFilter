@@ -25,7 +25,7 @@ POSITIONING_METHODS_INDEX = 0 % len(POSITIONING_METHODS)
 PF = 0
 EPF = 1
 TRI = 2
-NUM_GENERATIONS = 1
+NUM_GENERATIONS = 10
 ##############################################
 MIN_DIST = 50
 START_POS = None
